@@ -20,6 +20,7 @@ export interface Vehicle {
   precio_ars: number;    // INTEGER — pesos argentinos
   precio_piso_ars: number; // INTEGER — precio mínimo de venta (piso)
   color: string;
+  estado?: 'disponible' | 'reservado' | 'vendido';
   specs: {
     power_cv: number;
     acceleration: string;

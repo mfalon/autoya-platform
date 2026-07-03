@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { Plus, Search, Edit, Eye, Car } from 'lucide-react'
 import { VEHICLES, type Vehicle } from '@/data/vehicles'
@@ -14,12 +14,34 @@ const ESTADO_COLORS = {
 
 export default function VehiculosPage() {
   const [search, setSearch] = useState('')
-  const [vehicles] = useState<Vehicle[]>(VEHICLES)
+  const [vehicles, setVehicles] = useState<Vehicle[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/vehiculos')
+      .then(res => res.json())
+      .then(data => {
+        setVehicles(data)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('[Admin Inventario] Error al cargar vehículos:', err)
+        setLoading(false)
+      })
+  }, [])
 
   const filtered = vehicles.filter(v =>
     v.brand.toLowerCase().includes(search.toLowerCase()) ||
     v.model.toLowerCase().includes(search.toLowerCase())
   )
+
+  if (loading) {
+    return (
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fg-secondary)', fontSize: 13 }}>
+        Cargando inventario de vehículos...
+      </div>
+    )
+  }
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -82,7 +104,7 @@ export default function VehiculosPage() {
             </thead>
             <tbody>
               {filtered.map((v, i) => {
-                const estado = 'disponible' as 'disponible' | 'reservado' | 'vendido'
+                const estado = v.estado || 'disponible'
                 const ec = ESTADO_COLORS[estado]
                 return (
                   <motion.tr

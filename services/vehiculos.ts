@@ -35,6 +35,7 @@ export async function obtenerVehiculos(): Promise<Vehicle[]> {
       color: v.color || 'Blanco',
       image: v.image_url || '/cars/sedan.png',
       featured: v.featured || false,
+      estado: v.estado || 'disponible',
       specs: {
         power_cv: v.specs_power || 150,
         acceleration: v.specs_acc || '8.5s',
