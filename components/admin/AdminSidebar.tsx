@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Car, FileText, Users, LogOut,
-  Shield, TrendingUp, Settings, DollarSign
+  Shield, TrendingUp, Settings, DollarSign, ShieldAlert
 } from 'lucide-react'
 import { MOCK_USER } from '@/types/admin'
 
@@ -16,6 +16,7 @@ const NAV = [
   { href: '/admin/clientes',       label: 'Clientes',       icon: Users },
   { href: '/admin/configuracion',  label: 'Configuración',  icon: Settings },
   { href: '/admin/precios',        label: 'Precios ACARA',  icon: DollarSign },
+  { href: '/admin/auditoria',      label: 'Auditoría Flota',  icon: ShieldAlert },
 ]
 
 const ROL_LABEL: Record<string, string> = {
