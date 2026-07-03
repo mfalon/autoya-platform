@@ -51,13 +51,31 @@ export async function POST(req: NextRequest) {
       const [vehicleId, email] = external_reference.split('|')
 
       // ── Acciones al confirmar pago ────────────────────────────
-      // TODO (cuando Supabase esté conectado):
-      //   1. UPDATE vehiculos SET estado='reservado' WHERE id=vehicleId
-      //   2. INSERT INTO tramites_legales (vehiculo_id, comprador_email, estado) VALUES (vehicleId, email, 'reserva')
-      //   3. Enviar email de confirmación al comprador (Resend)
+      try {
+        const { actualizarEstadoVehiculo } = await import('@/services/vehiculos')
+        const { obtenerTramites, actualizarTramite } = await import('@/services/tramites')
+
+        // 1. Marcar el vehículo como reservado en la base de datos
+        await actualizarEstadoVehiculo(vehicleId, 'reservado')
+
+        // 2. Buscar el trámite provisorio del comprador y avanzar el estado a 'validacion'
+        const list = await obtenerTramites()
+        const match = list.find(t => t.comprador_email === email && t.estado === 'reserva')
+        if (match) {
+          await actualizarTramite(match.id, {
+            estado: 'validacion',
+            notas: `Seña MercadoPago confirmada (Pago #${paymentId}). Trámite transferido a validación documental.`,
+          })
+          console.log(`[Webhook MP] ✅ Trámite ${match.id} avanzado a validación`)
+        } else {
+          console.warn(`[Webhook MP] No se encontró trámite coincidente para ${email}`)
+        }
+
+      } catch (dbErr) {
+        console.error('[Webhook MP] Error actualizando base de datos:', dbErr)
+      }
 
       console.log(`[Webhook MP] ✅ Pago aprobado — vehiculo: ${vehicleId}, comprador: ${email}`)
-      console.log('[Webhook MP] TODO: marcar vehículo como reservado en Supabase')
     }
 
     return NextResponse.json({ received: true, status })
