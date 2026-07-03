@@ -110,7 +110,7 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
       {
         id: 'welcome',
         role: 'assistant',
-        content: '¡Ey, bienvenido fiera! Soy El Gitano, el mejor vendedor de autos del Gran Buenos Aires. ¿Qué estás buscando hoy, maestro? Decime el tipo de fierro que querés y te armo el negocio ahora mismo. 🔥',
+        content: 'Estimado/a, le doy la bienvenida a AutoYa. Soy su Asesor Premium personal. ¿En qué tipo de vehículo se encuentra interesado hoy? Con gusto le asistiré para encontrar la mejor opción técnica y financiera.',
       },
     ],
   } as any) as any
@@ -248,18 +248,18 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
           background: 'var(--brand-dim)',
           border: '2px solid var(--brand-border)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 18, flexShrink: 0,
+          fontSize: 16, flexShrink: 0,
           boxShadow: '0 0 16px var(--brand-glow)',
         }}>
-          🤠
+          👤
         </div>
         <div style={{ flex: 1 }}>
           <p style={{ fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--fg-primary)' }}>
-            El Gitano
+            Asesor Premium
           </p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-            <span style={{ fontSize: 11, color: 'var(--fg-secondary)' }}>Gemini · cerrador nº1 Argentina</span>
+            <span style={{ fontSize: 11, color: 'var(--fg-secondary)' }}>Consultoría de Ventas · En línea</span>
           </div>
         </div>
         <button
