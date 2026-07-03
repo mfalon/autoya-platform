@@ -526,77 +526,72 @@ export default function VehicleEditModal({ vehicle, onClose, onSave }: VehicleEd
                   </div>
 
                   {/* Panel Código QR Sincronización */}
-                  <AnimatePresence>
-                    {showQr && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        style={{
-                          background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                          borderRadius: 4, padding: 14, marginBottom: 12, overflow: 'hidden',
-                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10
-                        }}
-                      >
-                        <p style={{ fontSize: 11, color: 'var(--fg-secondary)', textAlign: 'center', fontWeight: 600 }}>
-                          📷 Escanee para tomar fotos desde el móvil
-                        </p>
-                        
-                        {/* URL generada para el QR */}
-                        {(() => {
-                          let finalUrl = ''
-                          if (typeof window !== 'undefined') {
-                            if (window.location.hostname === 'localhost' && localIp) {
-                              finalUrl = `http://${localIp}:3000/camera?syncId=${syncId}`
-                            } else {
-                              finalUrl = `${window.location.origin}/camera?syncId=${syncId}`
-                            }
+                  {showQr && (
+                    <div
+                      style={{
+                        background: 'var(--bg-card)', border: '1px solid var(--border)',
+                        borderRadius: 4, padding: 16, marginBottom: 12, marginTop: 12,
+                        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12
+                      }}
+                    >
+                      <p style={{ fontSize: 11, color: 'var(--fg-secondary)', textAlign: 'center', fontWeight: 600 }}>
+                        📷 Escanee para tomar fotos desde el móvil
+                      </p>
+                      
+                      {/* URL generada para el QR */}
+                      {(() => {
+                        let finalUrl = ''
+                        if (typeof window !== 'undefined') {
+                          if (window.location.hostname === 'localhost' && localIp) {
+                            finalUrl = `http://${localIp}:3000/camera?syncId=${syncId}`
+                          } else {
+                            finalUrl = `${window.location.origin}/camera?syncId=${syncId}`
                           }
-                          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(finalUrl)}`
-                          
-                          return (
-                            <>
-                              <div style={{
-                                width: 138, height: 138, background: '#fff', padding: 4,
-                                borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center'
-                              }}>
-                                <img src={qrUrl} alt="QR Code" style={{ width: '130px', height: '130px' }} />
-                              </div>
-
-                              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                <label style={{ fontSize: 9, color: 'var(--fg-tertiary)' }}>
-                                  {typeof window !== 'undefined' && window.location.hostname === 'localhost' 
-                                    ? 'IP Local de tu Computadora (para pruebas en WiFi local):' 
-                                    : 'Enlace del Portal Móvil:'}
-                                </label>
-                                {typeof window !== 'undefined' && window.location.hostname === 'localhost' ? (
-                                  <input
-                                    type="text"
-                                    value={localIp}
-                                    onChange={e => setLocalIp(e.target.value)}
-                                    placeholder="192.168.1.XX"
-                                    style={{
-                                      padding: '6px 8px', background: 'var(--bg-card)', border: '1px solid var(--border)',
-                                      borderRadius: 3, fontSize: 10, color: 'var(--fg-primary)', outline: 'none'
-                                    }}
-                                  />
-                                ) : (
-                                  <p style={{ fontSize: 9, color: 'var(--fg-tertiary)', wordBreak: 'break-all', fontFamily: 'monospace' }}>
-                                    {finalUrl}
-                                  </p>
-                                )}
-                              </div>
-                            </>
-                          )
-                        })()}
+                        }
+                        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(finalUrl)}`
                         
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'var(--fg-tertiary)' }}>
-                          <RefreshCw size={10} style={{ animation: 'spin 2s linear infinite', color: '#f59e0b' }} />
-                          <span>Esperando captura del celular...</span>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                        return (
+                          <>
+                            <div style={{
+                              width: 138, height: 138, background: '#fff', padding: 4,
+                              borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}>
+                              <img src={qrUrl} alt="QR Code" style={{ width: '130px', height: '130px' }} />
+                            </div>
+
+                            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                              <label style={{ fontSize: 9, color: 'var(--fg-tertiary)' }}>
+                                {typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+                                  ? 'IP Local de tu Computadora (para pruebas en WiFi local):' 
+                                  : 'Enlace del Portal Móvil:'}
+                              </label>
+                              {typeof window !== 'undefined' && window.location.hostname === 'localhost' ? (
+                                <input
+                                  type="text"
+                                  value={localIp}
+                                  onChange={e => setLocalIp(e.target.value)}
+                                  placeholder="192.168.1.XX"
+                                  style={{
+                                    padding: '6px 8px', background: 'var(--bg-card)', border: '1px solid var(--border)',
+                                    borderRadius: 3, fontSize: 10, color: 'var(--fg-primary)', outline: 'none'
+                                  }}
+                                />
+                              ) : (
+                                <p style={{ fontSize: 9, color: 'var(--fg-tertiary)', wordBreak: 'break-all', fontFamily: 'monospace' }}>
+                                  {finalUrl}
+                                </p>
+                              )}
+                            </div>
+                          </>
+                        )
+                      })()}
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'var(--fg-tertiary)' }}>
+                        <RefreshCw size={10} style={{ animation: 'spin 2s linear infinite', color: '#f59e0b' }} />
+                        <span>Esperando captura del celular...</span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Input de texto secundario para URL externa */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
