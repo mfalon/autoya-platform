@@ -24,6 +24,7 @@ export interface Tramite {
   notas?: string
   created_at: string
   dni_procesado: boolean
+  vehiculo_image?: string
 }
 
 // ── Mock data para demo (sin Supabase) ────────────────────────

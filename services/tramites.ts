@@ -148,3 +148,65 @@ export async function crearTramite(datos: {
     return null
   }
 }
+
+export async function consultarTramitePorDni(dni: string): Promise<Tramite | null> {
+  const dniLimpio = dni.replace(/\D/g, '')
+
+  if (!supabase) {
+    const found = MOCK_TRAMITES.find(t => t.comprador_dni.replace(/\D/g, '') === dniLimpio)
+    return found || null
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('tramites_legales')
+      .select(`
+        id,
+        estado,
+        comprador_nombre,
+        comprador_dni,
+        comprador_email,
+        notas,
+        created_at,
+        dni_data,
+        vehiculos (
+          brand,
+          model,
+          year,
+          precio_ars,
+          image
+        )
+      `)
+      .or(`comprador_dni.eq.${dni},comprador_dni.eq.${dniLimpio}`)
+      .order('created_at', { ascending: false })
+      .limit(1)
+
+    if (error) throw error
+
+    if (!data || data.length === 0) {
+      return null
+    }
+
+    const t = data[0] as any
+    const vehiculo = Array.isArray(t.vehiculos) ? t.vehiculos[0] : (t.vehiculos || {})
+    return {
+      id: String(t.id),
+      vehiculo_brand: vehiculo.brand || 'Desconocido',
+      vehiculo_model: vehiculo.model || 'Desconocido',
+      vehiculo_year: Number(vehiculo.year || 2024),
+      precio_ars: Number(vehiculo.precio_ars || 0),
+      comprador_nombre: t.comprador_nombre || 'Cliente Anónimo',
+      comprador_dni: t.comprador_dni || '',
+      comprador_email: t.comprador_email || '',
+      estado: t.estado as EstadoTramite,
+      notas: t.notas || '',
+      created_at: t.created_at,
+      dni_procesado: !!t.dni_data,
+      vehiculo_image: vehiculo.image || '',
+    }
+  } catch (err) {
+    console.error('[Services Tramites] Error al consultar por DNI:', err)
+    const found = MOCK_TRAMITES.find(t => t.comprador_dni.replace(/\D/g, '') === dniLimpio)
+    return found || null
+  }
+}
