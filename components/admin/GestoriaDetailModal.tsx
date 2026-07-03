@@ -23,6 +23,7 @@ export default function GestoriaDetailModal({ tramite, onClose, onUpdate }: Gest
   
   // Datos extraídos por OCR
   const [ocrData, setOcrData] = useState<any>(null)
+  const [ocrErrorAlert, setOcrErrorAlert] = useState<string | null>(null)
   
   // Estados de UI
   const [processing, setProcessing] = useState(false)
@@ -35,6 +36,7 @@ export default function GestoriaDetailModal({ tramite, onClose, onUpdate }: Gest
     if (!file) return
 
     setProcessing(true)
+    setOcrErrorAlert(null)
     const formData = new FormData()
     formData.append('image', file)
 
@@ -49,6 +51,16 @@ export default function GestoriaDetailModal({ tramite, onClose, onUpdate }: Gest
       if (result.success && result.data) {
         setOcrData(result.data)
         
+        // Validación estructurada de integridad del OCR (DNI y Nombres)
+        const dniClean = String(result.data.dni || '').replace(/\D/g, '')
+        const hasNames = !!result.data.nombres && !!result.data.apellido
+        
+        if (dniClean.length < 7 || dniClean.length > 9 || !hasNames) {
+          setOcrErrorAlert('⚠️ Advertencia: Calidad de imagen baja. La lectura óptica devolvió campos incompletos o fuera de formato. Verifique y corrija los datos del comprador.')
+        } else {
+          setOcrErrorAlert(null)
+        }
+
         // Auto-completamos los datos del comprador con la lectura de Gemini
         const fullname = `${result.data.nombres} ${result.data.apellido}`.trim()
         setNombre(fullname)
@@ -206,6 +218,17 @@ export default function GestoriaDetailModal({ tramite, onClose, onUpdate }: Gest
               
               {activeTab === 'expediente' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  {ocrErrorAlert && (
+                    <div style={{
+                      background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.3)',
+                      borderRadius: 4, padding: '12px 14px', fontSize: 11, color: '#f59e0b',
+                      lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 8
+                    }}>
+                      <AlertCircle size={15} style={{ flexShrink: 0, marginTop: 1 }} />
+                      <span>{ocrErrorAlert}</span>
+                    </div>
+                  )}
+
                   <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     Datos del Comprador
                   </h3>

@@ -5,12 +5,15 @@ import path from 'path'
 const CONFIG_PATH = path.join(process.cwd(), 'data', 'config.json')
 
 export async function GET() {
+  const isOffline = !process.env.SUPABASE_URL
   try {
     const data = await fs.readFile(CONFIG_PATH, 'utf-8')
-    return NextResponse.json(JSON.parse(data))
+    const config = JSON.parse(data)
+    config.isOffline = isOffline
+    return NextResponse.json(config)
   } catch (error) {
     // Si no existe, retornamos valores por defecto
-    const defaults = {
+    const defaults: any = {
       tna12: 0.65,
       tna24: 0.68,
       tna36: 0.72,
@@ -18,6 +21,7 @@ export async function GET() {
       cftDefault: 0.95,
       legend: "Simulación bajo sistema de amortización francés. Tasa fija en Pesos. No incluye gastos de otorgamiento ni seguros."
     }
+    defaults.isOffline = isOffline
     return NextResponse.json(defaults)
   }
 }

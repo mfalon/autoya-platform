@@ -8,10 +8,59 @@ import { NextRequest, NextResponse } from 'next/server'
  *
  * Documentación: https://www.mercadopago.com.ar/developers/es/docs/your-integrations/notifications/ipn
  */
+import { crypto } from 'next/dist/compiled/@edge-runtime/primitives' // fallback or standard node crypto
+import cryptoNode from 'crypto'
+
 export async function POST(req: NextRequest) {
   try {
+    const signatureHeader = req.headers.get('x-signature') || ''
+    const requestId = req.headers.get('x-request-id') || ''
+    const { searchParams } = new URL(req.url)
+    const resourceId = searchParams.get('id') || ''
+
     const body = await req.json()
     const { type, data } = body
+
+    // ── Validar Firma de MercadoPago ────────────────────────────
+    const webhookSecret = process.env.MP_WEBHOOK_SECRET
+    if (webhookSecret) {
+      if (!signatureHeader || !resourceId) {
+        console.error('[Webhook MP] Intento de acceso sin firmas digitales obligatorias.')
+        return NextResponse.json({ error: 'Firmas ausentes' }, { status: 401 })
+      }
+
+      // Parsear ts y v1 del header (formato: ts=169000,v1=abc123hash...)
+      const parts = signatureHeader.split(',')
+      let ts = ''
+      let v1 = ''
+      parts.forEach(part => {
+        const [key, value] = part.split('=')
+        if (key.trim() === 'ts') ts = value.trim()
+        if (key.trim() === 'v1') v1 = value.trim()
+      })
+
+      if (!ts || !v1) {
+        console.error('[Webhook MP] Estructura de firma digital inválida.')
+        return NextResponse.json({ error: 'Estructura de firma inválida' }, { status: 401 })
+      }
+
+      // Reconstruir el string de verificación oficial
+      // Formato oficial: id:[resourceId];request-id:[requestId];ts:[ts];
+      const manifest = `id:${resourceId};request-id:${requestId};ts:${ts};`
+      const calculatedHash = cryptoNode
+        .createHmac('sha256', webhookSecret)
+        .update(manifest)
+        .digest('hex')
+
+      if (calculatedHash !== v1) {
+        console.error('[Webhook MP] ❌ Firma de webhook INVÁLIDA. Posible spoofing detectado.', { calculatedHash, expected: v1 })
+        return NextResponse.json({ error: 'Firma inválida' }, { status: 401 })
+      }
+
+      console.log('[Webhook MP] ✅ Firma digital validada criptográficamente.')
+    } else {
+      console.warn('[Webhook MP] Advertencia: MP_WEBHOOK_SECRET no configurado. Corriendo en modo Sandbox/Test (Omisión de Firma).')
+    }
 
     console.log('[Webhook MP] Notificación recibida:', { type, data })
 

@@ -18,17 +18,20 @@ const ESTADO_CONFIG = {
 export default function DashboardPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [tramites, setTramites] = useState<Tramite[]>([])
+  const [isOffline, setIsOffline] = useState(false)
   const [loading, setLoading] = useState(true)
 
   // Cargar estadísticas y datos del Dashboard
   useEffect(() => {
     Promise.all([
       fetch('/api/vehiculos').then(res => res.json()),
-      fetch('/api/tramites').then(res => res.json())
+      fetch('/api/tramites').then(res => res.json()),
+      fetch('/api/config').then(res => res.json())
     ])
-      .then(([vehiclesData, tramitesData]) => {
+      .then(([vehiclesData, tramitesData, configData]) => {
         setVehicles(vehiclesData)
         setTramites(tramitesData)
+        setIsOffline(!!configData.isOffline)
         setLoading(false)
       })
       .catch(err => {
@@ -117,6 +120,19 @@ export default function DashboardPage() {
           {new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
         </p>
       </div>
+
+      {isOffline && (
+        <div style={{
+          background: 'rgba(245,158,11,0.06)', border: '1px solid rgba(245,158,11,0.25)',
+          borderRadius: 4, padding: '12px 16px', marginBottom: 20, fontSize: 12,
+          color: '#f59e0b', display: 'flex', alignItems: 'center', gap: 10
+        }}>
+          <AlertCircle size={15} style={{ flexShrink: 0 }} />
+          <span>
+            <strong>Modo de Datos Local Activo:</strong> La plataforma no detectó conexión a Supabase y está corriendo con la base de datos de respaldo offline. Los cambios se guardarán localmente en el navegador y en archivos locales.
+          </span>
+        </div>
+      )}
 
       {/* Stats grid */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14, marginBottom: 28 }} className="flex-col md:grid">
