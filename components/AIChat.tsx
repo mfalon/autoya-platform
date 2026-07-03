@@ -1,123 +1,209 @@
-'use client';
+'use client'
 
-import { useState, useRef, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Bot, Sparkles, Loader2, X } from 'lucide-react';
+import { useChat } from 'ai/react'
+import { useRef, useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Send, X, Mic, MicOff, Loader2, Sparkles } from 'lucide-react'
+import ChatCarCard from '@/components/chat/ChatCarCard'
+import SenaButton from '@/components/chat/SenaButton'
+import type { Vehicle } from '@/data/vehicles'
 
-interface Message {
-  id: string;
-  role: 'user' | 'assistant';
-  content: string;
-}
+const SUGGESTIONS = [
+  'Busco una pickup 4x4',
+  'Quiero un SUV económico',
+  'Tengo un auto para entregar',
+  'Mostrá todo el stock',
+  'Cuánto sale la Hilux',
+]
 
 interface AIChatProps {
-  onAgentFilter: (bodyTypes: string[], maxPrice?: number) => void;
+  onAgentFilter: (bodyTypes: string[], maxPrice?: number) => void
+  onReservar: (vehicle: Vehicle) => void
 }
 
-const SUGGESTIONS = ['Pickups 4x4', 'SUVs', 'Algo económico', 'Hatchbacks', 'Toyota', 'Diesel'];
+// Detección de Web Speech API
+const hasSpeechRecognition = typeof window !== 'undefined' &&
+  ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
 
-function mockAgentResponse(input: string): { text: string; bodyTypes?: string[]; maxPrice?: number } {
-  const q = input.toLowerCase();
-  if (q.includes('camioneta') || q.includes('pickup') || q.includes('hilux') || q.includes('ranger') || q.includes('4x4'))
-    return { text: '¡Tenemos pickups disponibles! Hilux y Ranger son las reinas del segmento. Te las muestro ahora.', bodyTypes: ['pickup'] };
-  if (q.includes('suv') || q.includes('tracker') || q.includes('duster') || q.includes('taos'))
-    return { text: 'Los SUVs son el segmento más vendido en Argentina. Mirá lo que tenemos disponible en stock.', bodyTypes: ['suv'] };
-  if (q.includes('hatchback') || q.includes('polo') || q.includes('onix') || q.includes('208'))
-    return { text: 'Los hatchbacks son perfectos para la ciudad: económicos y fáciles de manejar. Acá las opciones.', bodyTypes: ['hatchback'] };
-  if (q.includes('sedan') || q.includes('sedán') || q.includes('corolla') || q.includes('cronos'))
-    return { text: 'Los sedanes ofrecen el mejor equilibrio entre comodidad y prestaciones. Mirá estas opciones.', bodyTypes: ['sedan'] };
-  if (q.includes('diesel'))
-    return { text: 'Para muchos kilómetros diarios el diesel es lo mejor. Filtré las pickups con motor diesel.', bodyTypes: ['pickup'] };
-  if (q.includes('toyota'))
-    return { text: 'Toyota tiene una de las mejores redes de servicio en el país. Acá los Toyota disponibles en stock.', bodyTypes: ['sedan', 'pickup'] };
-  if (q.includes('económic') || q.includes('barato') || q.includes('accesible') || q.includes('bajo presupuesto'))
-    return { text: 'Entendido. Filtrando opciones por precio para mostrarte lo mejor dentro de un presupuesto accesible.', maxPrice: 25_000_000 };
-  if (q.includes('todo') || q.includes('todos') || q.includes('ver todo'))
-    return { text: 'Mostrando todo el catálogo. Tenemos sedanes, hatchbacks, SUVs y pickups disponibles.', bodyTypes: [] };
-  return { text: 'Podés preguntarme por tipo de auto (SUV, pickup, hatchback, sedán), marca (Toyota, VW, Chevrolet…) o por presupuesto. ¿Qué estás buscando hoy?' };
-}
+export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef  = useRef<HTMLInputElement>(null)
+  const [isListening, setIsListening]   = useState(false)
+  const [noApiKey, setNoApiKey]         = useState(false)
+  const recognitionRef = useRef<SpeechRecognition | null>(null)
 
-export default function AIChat({ onAgentFilter }: AIChatProps) {
-  const [messages, setMessages] = useState<Message[]>([{
-    id: 'welcome',
-    role: 'assistant',
-    content: '¡Hola! Soy el Agente AutoYa. Decime qué tipo de auto buscás y te muestro las mejores opciones del stock en tiempo real. Podés decirme "mostrame camionetas", "quiero un SUV" o "algo económico".',
-  }]);
-  const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const { messages, input, setInput, handleInputChange, handleSubmit, isLoading, error } = useChat({
+    api: '/api/chat',
+    onError: (err) => {
+      if (err.message?.includes('API key') || err.message?.includes('503')) {
+        setNoApiKey(true)
+      }
+    },
+    initialMessages: [
+      {
+        id: 'welcome',
+        role: 'assistant',
+        content: '¡Ey, bienvenido fiera! Soy El Gitano, el mejor vendedor de autos del Gran Buenos Aires. ¿Qué estás buscando hoy, maestro? Decime el tipo de fierro que querés y te armo el negocio ahora mismo. 🔥',
+      },
+    ],
+  })
 
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+  // Auto-scroll
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, isLoading])
 
-  const handleSend = async (text?: string) => {
-    const msg = (text ?? input).trim();
-    if (!msg || isLoading) return;
-    setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', content: msg }]);
-    setInput('');
-    setIsLoading(true);
-    await new Promise(r => setTimeout(r, 600 + Math.random() * 400));
-    const { text: res, bodyTypes, maxPrice } = mockAgentResponse(msg);
-    if (bodyTypes !== undefined || maxPrice !== undefined) onAgentFilter(bodyTypes ?? [], maxPrice);
-    setMessages(prev => [...prev, { id: (Date.now() + 1).toString(), role: 'assistant', content: res }]);
-    setIsLoading(false);
-  };
+  // Voz — Web Speech API
+  const toggleVoice = () => {
+    if (!hasSpeechRecognition) return
+
+    if (isListening) {
+      recognitionRef.current?.stop()
+      setIsListening(false)
+      return
+    }
+
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition
+    const recognition: SpeechRecognition = new SpeechRecognitionAPI()
+    recognition.lang = 'es-AR'
+    recognition.continuous = false
+    recognition.interimResults = false
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[0][0].transcript
+      setInput(transcript)
+      setIsListening(false)
+      // Auto-send after voice
+      setTimeout(() => inputRef.current?.form?.requestSubmit(), 300)
+    }
+
+    recognition.onerror = () => setIsListening(false)
+    recognition.onend = () => setIsListening(false)
+
+    recognition.start()
+    recognitionRef.current = recognition
+    setIsListening(true)
+  }
+
+  // Render de tool results (Generative UI)
+  const renderToolResult = (toolName: string, result: any) => {
+    if (toolName === 'mostrar_joya' && result?.vehicles?.length) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+          {result.vehicles.map((v: Vehicle) => (
+            <ChatCarCard key={v.id} vehicle={v} onReservar={onReservar} />
+          ))}
+        </div>
+      )
+    }
+
+    if (toolName === 'cotizar_usado_gitano') {
+      return (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{
+            background: 'var(--ai-dim)',
+            border: '1px solid var(--ai-border)',
+            borderRadius: 6,
+            padding: '14px 16px',
+            marginTop: 4,
+          }}
+        >
+          <p style={{ fontSize: 12, fontWeight: 600, color: 'var(--ai)', marginBottom: 12 }}>
+            📋 Formulario de Tasación
+          </p>
+          {[
+            { label: 'Marca y modelo', placeholder: 'Ej: Toyota Corolla 2020' },
+            { label: 'Kilometraje', placeholder: 'Ej: 65000' },
+            { label: 'Estado general', placeholder: 'Excelente / Bueno / Regular' },
+          ].map(({ label, placeholder }) => (
+            <div key={label} style={{ marginBottom: 8 }}>
+              <p style={{ fontSize: 10, color: 'var(--fg-tertiary)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                {label}
+              </p>
+              <input
+                placeholder={placeholder}
+                style={{
+                  width: '100%', padding: '8px 10px',
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 3, fontSize: 12,
+                  color: 'var(--fg-primary)',
+                }}
+              />
+            </div>
+          ))}
+          <button style={{
+            width: '100%', marginTop: 8, padding: '9px',
+            background: 'var(--ai)', color: '#fff',
+            border: 'none', borderRadius: 3,
+            fontSize: 12, fontWeight: 700, cursor: 'pointer',
+          }}>
+            Tasar mi auto gratis
+          </button>
+        </motion.div>
+      )
+    }
+
+    if (toolName === 'lanzar_cierre_sena' && result?.vehicle) {
+      return <SenaButton vehicle={result.vehicle} mensaje={result.mensaje} onReservar={onReservar} />
+    }
+
+    return null
+  }
 
   return (
     <div style={{
       display: 'flex', flexDirection: 'column', height: '100%',
       background: 'var(--bg-surface)',
       borderRight: '1px solid var(--border)',
-      position: 'relative',
     }}>
-
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{
-        padding: '16px 20px',
+        padding: '14px 18px',
         borderBottom: '1px solid var(--border)',
         background: 'var(--bg-elevated)',
         display: 'flex', alignItems: 'center', gap: 12,
       }}>
-        {/* AI avatar */}
         <div style={{
-          width: 36, height: 36, borderRadius: '50%',
-          background: 'var(--ai-dim)',
-          border: '1px solid var(--ai-border)',
+          width: 38, height: 38, borderRadius: '50%',
+          background: 'var(--brand-dim)',
+          border: '2px solid var(--brand-border)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          flexShrink: 0,
+          fontSize: 18, flexShrink: 0,
+          boxShadow: '0 0 16px var(--brand-glow)',
         }}>
-          <Bot size={16} style={{ color: 'var(--ai)' }} />
+          🤠
         </div>
-
         <div style={{ flex: 1 }}>
-          <p style={{ fontSize: 14, fontWeight: 600, fontFamily: 'var(--font-display)', color: 'var(--fg-primary)' }}>
-            Agente AutoYa
+          <p style={{ fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-display)', color: 'var(--fg-primary)' }}>
+            El Gitano
           </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 1 }}>
             <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />
-            <span style={{ fontSize: 11, color: 'var(--fg-secondary)' }}>Gemini · en línea</span>
+            <span style={{ fontSize: 11, color: 'var(--fg-secondary)' }}>Gemini · cerrador nº1 Argentina</span>
           </div>
         </div>
-
-        <Sparkles size={14} style={{ color: 'var(--ai)', opacity: 0.7 }} />
+        <Sparkles size={13} style={{ color: 'var(--brand)', opacity: 0.8 }} />
       </div>
 
-      {/* ── AI label ── */}
-      <div style={{
-        margin: '12px 16px 0',
-        padding: '8px 12px',
-        background: 'var(--ai-dim)',
-        border: '1px solid var(--ai-border)',
-        borderRadius: 4,
-        fontSize: 11,
-        color: 'var(--ai)',
-        letterSpacing: '0.05em',
-        display: 'flex', alignItems: 'center', gap: 6,
-      }}>
-        <Sparkles size={11} /> Generative UI · Controla el catálogo en tiempo real
-      </div>
+      {/* No API key warning */}
+      {noApiKey && (
+        <div style={{
+          margin: '10px 14px',
+          padding: '10px 12px',
+          background: 'rgba(245,158,11,0.1)',
+          border: '1px solid rgba(245,158,11,0.3)',
+          borderRadius: 4, fontSize: 11, color: '#f59e0b',
+          lineHeight: 1.5,
+        }}>
+          ⚠️ Gemini API key no configurada. Agregá <code>GOOGLE_GENERATIVE_AI_API_KEY</code> al <code>.env.local</code> para activar El Gitano real.
+        </div>
+      )}
 
-      {/* ── Messages ── */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      {/* Messages */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <AnimatePresence initial={false}>
           {messages.map(msg => (
             <motion.div
@@ -125,79 +211,85 @@ export default function AIChat({ onAgentFilter }: AIChatProps) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
-              style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: msg.role === 'user' ? 'flex-end' : 'flex-start', gap: 6 }}
             >
-              <div style={{
-                maxWidth: '88%',
-                padding: '10px 14px',
-                borderRadius: 4,
-                fontSize: 13,
-                lineHeight: 1.6,
-                ...(msg.role === 'user'
-                  ? { background: 'var(--brand)', color: '#fff' }
-                  : {
-                    background: 'var(--bg-elevated)',
-                    color: 'var(--fg-primary)',
-                    border: '1px solid var(--border)',
-                  })
-              }}>
-                {msg.content}
-              </div>
+              {/* Text bubble */}
+              {msg.content && (
+                <div style={{
+                  maxWidth: '90%',
+                  padding: '10px 14px',
+                  borderRadius: msg.role === 'user' ? '12px 12px 2px 12px' : '2px 12px 12px 12px',
+                  fontSize: 13, lineHeight: 1.65,
+                  ...(msg.role === 'user'
+                    ? { background: 'var(--brand)', color: '#fff' }
+                    : {
+                      background: 'var(--bg-elevated)',
+                      color: 'var(--fg-primary)',
+                      border: '1px solid var(--border)',
+                    })
+                }}>
+                  {msg.content}
+                </div>
+              )}
+
+              {/* Tool results — Generative UI */}
+              {msg.role === 'assistant' && msg.toolInvocations?.map(invocation => {
+                if (invocation.state !== 'result') return null
+                const ui = renderToolResult(invocation.toolName, invocation.result)
+                return ui ? <div key={invocation.toolCallId} style={{ width: '100%' }}>{ui}</div> : null
+              })}
             </motion.div>
           ))}
         </AnimatePresence>
 
+        {/* Loading */}
         {isLoading && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'flex' }}>
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px',
+              padding: '10px 14px',
               background: 'var(--bg-elevated)',
               border: '1px solid var(--border)',
-              borderRadius: 4,
-              fontSize: 12,
-              color: 'var(--fg-secondary)',
+              borderRadius: '2px 12px 12px 12px',
+              display: 'flex', alignItems: 'center', gap: 8,
+              fontSize: 13, color: 'var(--fg-secondary)',
             }}>
-              <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} />
-              Procesando...
+              <Loader2 size={13} style={{ animation: 'spin 1s linear infinite', color: 'var(--brand)' }} />
+              El Gitano está pensando...
             </div>
           </motion.div>
         )}
+
         <div ref={bottomRef} />
       </div>
 
-      {/* ── Suggestions ── */}
+      {/* Suggestions */}
       <div style={{
-        padding: '8px 16px',
+        padding: '8px 14px',
         borderTop: '1px solid var(--border)',
-        display: 'flex', gap: 6, overflowX: 'auto',
+        display: 'flex', gap: 5, overflowX: 'auto',
         background: 'var(--bg-elevated)',
       }}>
         {SUGGESTIONS.map(s => (
           <button
             key={s}
-            onClick={() => handleSend(s)}
+            onClick={() => { setInput(s); inputRef.current?.focus() }}
             style={{
-              flexShrink: 0,
-              padding: '5px 12px',
-              fontSize: 10,
-              fontWeight: 600,
-              letterSpacing: '0.1em',
-              textTransform: 'uppercase',
+              flexShrink: 0, padding: '4px 10px',
+              fontSize: 10, fontWeight: 600, letterSpacing: '0.06em',
               background: 'var(--bg-card)',
               color: 'var(--fg-secondary)',
               border: '1px solid var(--border)',
-              borderRadius: 2,
-              cursor: 'pointer',
+              borderRadius: 2, cursor: 'pointer',
               whiteSpace: 'nowrap',
-              transition: 'border-color 0.15s, color 0.15s',
+              transition: 'all 0.15s',
             }}
             onMouseEnter={e => {
-              (e.target as HTMLElement).style.borderColor = 'var(--brand-border)';
-              (e.target as HTMLElement).style.color = 'var(--fg-primary)';
+              (e.target as HTMLElement).style.borderColor = 'var(--brand-border)'
+              ;(e.target as HTMLElement).style.color = 'var(--brand)'
             }}
             onMouseLeave={e => {
-              (e.target as HTMLElement).style.borderColor = 'var(--border)';
-              (e.target as HTMLElement).style.color = 'var(--fg-secondary)';
+              (e.target as HTMLElement).style.borderColor = 'var(--border)'
+              ;(e.target as HTMLElement).style.color = 'var(--fg-secondary)'
             }}
           >
             {s}
@@ -205,57 +297,85 @@ export default function AIChat({ onAgentFilter }: AIChatProps) {
         ))}
       </div>
 
-      {/* ── Input ── */}
-      <div style={{
-        padding: '12px 16px',
-        borderTop: '1px solid var(--border)',
-        display: 'flex', alignItems: 'center', gap: 8,
-        background: 'var(--bg-elevated)',
-      }}>
+      {/* Input */}
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          padding: '12px 14px',
+          borderTop: '1px solid var(--border)',
+          display: 'flex', alignItems: 'center', gap: 8,
+          background: 'var(--bg-elevated)',
+        }}
+      >
         <div style={{
           flex: 1, display: 'flex', alignItems: 'center',
           background: 'var(--bg-card)',
           border: '1px solid var(--border)',
           borderRadius: 4,
-          padding: '8px 12px',
-          gap: 8,
+          padding: '8px 12px', gap: 8,
         }}>
           <input
-            type="text"
+            ref={inputRef}
             value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-            placeholder="Decime qué auto buscás..."
-            style={{ flex: 1, fontSize: 13, background: 'transparent', color: 'var(--fg-primary)', border: 'none', outline: 'none' }}
+            onChange={handleInputChange}
+            placeholder={isListening ? '🎙️ Escuchando...' : 'Escribile a El Gitano...'}
+            disabled={isListening}
+            style={{
+              flex: 1, fontSize: 13,
+              background: 'transparent',
+              color: isListening ? 'var(--brand)' : 'var(--fg-primary)',
+            }}
           />
           {input && (
-            <button onClick={() => setInput('')} style={{ color: 'var(--fg-tertiary)', cursor: 'pointer', background: 'none', border: 'none', display: 'flex' }}>
-              <X size={13} />
+            <button type="button" onClick={() => setInput('')} style={{ color: 'var(--fg-tertiary)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
+              <X size={12} />
             </button>
           )}
         </div>
+
+        {/* Mic button */}
+        {hasSpeechRecognition && (
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={toggleVoice}
+            style={{
+              width: 36, height: 36, borderRadius: 4,
+              background: isListening ? 'var(--brand)' : 'var(--bg-card)',
+              border: `1px solid ${isListening ? 'transparent' : 'var(--border)'}`,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: isListening ? '#fff' : 'var(--fg-secondary)',
+              cursor: 'pointer',
+              boxShadow: isListening ? '0 0 16px var(--brand-glow)' : 'none',
+              flexShrink: 0,
+            }}
+          >
+            {isListening ? <MicOff size={14} /> : <Mic size={14} />}
+          </motion.button>
+        )}
+
+        {/* Send button */}
         <motion.button
+          type="submit"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={() => handleSend()}
           disabled={!input.trim() || isLoading}
           style={{
-            width: 36, height: 36,
-            background: input.trim() ? 'var(--brand)' : 'var(--bg-card)',
-            border: `1px solid ${input.trim() ? 'transparent' : 'var(--border)'}`,
-            borderRadius: 4,
+            width: 36, height: 36, borderRadius: 4,
+            background: input.trim() && !isLoading ? 'var(--brand)' : 'var(--bg-card)',
+            border: `1px solid ${input.trim() && !isLoading ? 'transparent' : 'var(--border)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: input.trim() ? '#fff' : 'var(--fg-tertiary)',
-            cursor: input.trim() ? 'pointer' : 'default',
-            transition: 'background 0.15s, border-color 0.15s',
+            color: input.trim() && !isLoading ? '#fff' : 'var(--fg-tertiary)',
+            cursor: input.trim() && !isLoading ? 'pointer' : 'default',
             flexShrink: 0,
           }}
         >
           <Send size={13} />
         </motion.button>
-      </div>
+      </form>
 
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
-  );
+  )
 }

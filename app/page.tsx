@@ -60,7 +60,7 @@ export default function Home() {
 
       {/* ══ LEFT: AI Panel ══════════════════════════════════ */}
       <aside style={{ width: 340, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <AIChat onAgentFilter={handleAgentFilter} />
+        <AIChat onAgentFilter={handleAgentFilter} onReservar={setSelectedVehicle} />
       </aside>
 
       {/* ══ RIGHT: Catalog ══════════════════════════════════ */}
