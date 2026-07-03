@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+/* ============================================================
+   AutoYa — Design System
+   Dark · Premium · Argentino
+   ============================================================ */
+
+/* ── CSS Variables (design tokens) ──────────────────────── */
+:root {
+  --bg-base:       #08090c;
+  --bg-surface:    #0d0f14;
+  --bg-elevated:   #13151d;
+  --bg-card:       #11131a;
+
+  --brand:         #e02232;
+  --brand-hover:   #ff3347;
+  --brand-glow:    rgba(224, 34, 50, 0.35);
+  --brand-dim:     rgba(224, 34, 50, 0.1);
+  --brand-border:  rgba(224, 34, 50, 0.3);
+
+  --ai:            #4f8ef7;
+  --ai-glow:       rgba(79, 142, 247, 0.3);
+  --ai-dim:        rgba(79, 142, 247, 0.08);
+  --ai-border:     rgba(79, 142, 247, 0.25);
+
+  --border:        rgba(255,255,255,0.07);
+  --border-strong: rgba(255,255,255,0.12);
+
+  --fg-primary:    #f0f1f5;
+  --fg-secondary:  #8891a4;
+  --fg-tertiary:   #454d5e;
+
+  --font-display:  var(--font-space-grotesk), system-ui, sans-serif;
+  --font-body:     var(--font-geist), system-ui, sans-serif;
+
+  --radius:        4px;
+  --radius-lg:     8px;
+}
+
+/* ── Reset ───────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { color-scheme: dark; scroll-behavior: smooth; }
+
+body {
+  background: var(--bg-base);
+  color: var(--fg-primary);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar         { width: 3px; height: 3px; }
+::-webkit-scrollbar-track   { background: transparent; }
+::-webkit-scrollbar-thumb   { background: var(--brand); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: var(--brand-hover); }
+
+/* ── Selection ───────────────────────────────────────────── */
+::selection { background: var(--brand); color: #fff; }
+
+/* ── Font helpers ────────────────────────────────────────── */
+.font-display { font-family: var(--font-display) !important; }
+
+/* ── Input base ──────────────────────────────────────────── */
+input, textarea, select {
+  font-family: var(--font-body);
+  background: transparent;
+  color: var(--fg-primary);
+  border: none;
+  outline: none;
+}
+
+input::placeholder { color: var(--fg-tertiary); }
+
+/* ── Range slider ────────────────────────────────────────── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: var(--border-strong);
+  border-radius: 1px;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--brand);
+  box-shadow: 0 0 8px var(--brand-glow);
+  cursor: pointer;
+}
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--brand);
+  border: none;
+  box-shadow: 0 0 8px var(--brand-glow);
+}
+
+/* ── Glow utilities ──────────────────────────────────────── */
+.glow-brand { box-shadow: 0 0 20px var(--brand-glow); }
+.glow-ai    { box-shadow: 0 0 20px var(--ai-glow); }
+
+/* ── Animated gradient border ────────────────────────────── */
+@keyframes borderGlow {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1;   }
+}
+
+/* ── Shimmer animation ───────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200%  0; }
+}
+
+.shimmer {
+  background: linear-gradient(90deg, var(--bg-elevated) 25%, var(--bg-surface) 50%, var(--bg-elevated) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite;
+}
+
+/* ── Dot grid background ─────────────────────────────────── */
+.dot-grid {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+/* ── Noise texture overlay ───────────────────────────────── */
+.noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  opacity: 0.4;
+}
