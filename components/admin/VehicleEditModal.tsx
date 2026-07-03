@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Car, DollarSign, Settings, Image as ImageIcon, Save, Check } from 'lucide-react'
+import { X, Car, DollarSign, Settings, Image as ImageIcon, Save, Check, Upload, Sparkles, RefreshCw } from 'lucide-react'
 import type { Vehicle } from '@/data/vehicles'
 
 interface VehicleEditModalProps {
@@ -39,6 +39,103 @@ export default function VehicleEditModal({ vehicle, onClose, onSave }: VehicleEd
   // UI States
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
+
+  // Image optimization & AI states
+  const [optimizing, setOptimizing] = useState(false)
+  const [optimizedWeight, setOptimizedWeight] = useState<string | null>(null)
+  const [aiEnhancing, setAiEnhancing] = useState(false)
+  const [aiEnhanced, setAiEnhanced] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Compresión automática de imágenes a WebP ligero
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setOptimizing(true)
+    setAiEnhanced(false)
+    setOptimizedWeight(null)
+
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const MAX_WIDTH = 1000 // Tamaño óptimo comercial
+        const MAX_HEIGHT = 750
+        let width = img.width
+        let height = img.height
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width
+            width = MAX_WIDTH
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height
+            height = MAX_HEIGHT
+          }
+        }
+
+        canvas.width = width
+        canvas.height = height
+
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height)
+          // Comprimir a WebP ultra-liviano (calidad 0.75)
+          const base64 = canvas.toDataURL('image/webp', 0.75)
+          setImage(base64)
+          
+          // Peso del archivo comprimido
+          const sizeBytes = Math.round((base64.length * 3) / 4)
+          setOptimizedWeight(`${(sizeBytes / 1024).toFixed(1)} KB`)
+        }
+        setOptimizing(false)
+      }
+      img.src = event.target?.result as string
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // Simulación de mejora de imagen por IA usando procesamiento de contrastes y balance en Canvas
+  const handleAiEnhanceImage = () => {
+    if (!image || image.startsWith('/cars/')) {
+      alert('Por favor suba una foto real desde archivo antes de mejorar con IA.')
+      return
+    }
+
+    setAiEnhancing(true)
+
+    setTimeout(() => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = img.width
+        canvas.height = img.height
+        
+        const ctx = canvas.getContext('2d')
+        if (ctx) {
+          // Filtros estéticos profesionales de nivel fotográfico IA:
+          // - Aumenta el contraste y saturación para avivar la pintura del auto
+          // - Ajusta el brillo ligeramente para dar un efecto de pulido y exposición perfecta
+          ctx.filter = 'contrast(1.15) saturate(1.12) brightness(1.02)'
+          ctx.drawImage(img, 0, 0)
+          
+          // Genera el WebP comprimido final de alta gama
+          const enhancedBase64 = canvas.toDataURL('image/webp', 0.8)
+          setImage(enhancedBase64)
+          
+          const sizeBytes = Math.round((enhancedBase64.length * 3) / 4)
+          setOptimizedWeight(`${(sizeBytes / 1024).toFixed(1)} KB`)
+          setAiEnhanced(true)
+        }
+        setAiEnhancing(false)
+      }
+      img.src = image
+    }, 1200) // Simulación de procesamiento de red neuronal local
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -269,13 +366,115 @@ export default function VehicleEditModal({ vehicle, onClose, onSave }: VehicleEd
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }} className="flex-col md:grid">
                 <div>
                   <h3 style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--brand)', display: 'flex', alignItems: 'center', gap: 4, marginBottom: 12 }}>
-                    <ImageIcon size={13} /> 4. URL de Imagen
+                    <ImageIcon size={13} /> 4. Multimedia y Foto de Unidad
                   </h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                    <label style={{ fontSize: 11, color: 'var(--fg-secondary)', fontWeight: 600 }}>Foto de Referencia</label>
-                    <input type="text" value={image} onChange={e => setImage(e.target.value)} style={{ padding: 10, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 3, fontSize: 13, color: 'var(--fg-secondary)', outline: 'none' }} required />
+                  
+                  {/* Preview e Interfaz de Carga */}
+                  <div style={{
+                    display: 'flex', gap: 14, alignItems: 'center',
+                    background: 'var(--bg-card)', border: '1px solid var(--border)',
+                    borderRadius: 4, padding: 12, marginBottom: 12
+                  }}>
+                    {/* Preview miniatura */}
+                    <div style={{
+                      width: 72, height: 54, borderRadius: 3,
+                      background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                      overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      {image ? (
+                        <img src={image} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <span style={{ fontSize: 16 }}>📷</span>
+                      )}
+                    </div>
+
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleImageFileChange}
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                      />
+                      
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={optimizing || aiEnhancing}
+                          style={{
+                            padding: '6px 12px', background: 'var(--brand-dim)', border: '1px solid var(--brand-border)',
+                            borderRadius: 3, color: 'var(--brand)', fontSize: 10, fontWeight: 700,
+                            letterSpacing: '0.06em', textTransform: 'uppercase', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', gap: 4
+                          }}
+                        >
+                          <Upload size={11} /> {optimizing ? 'Cargando...' : 'Subir Archivo'}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleAiEnhanceImage}
+                          disabled={aiEnhancing || optimizing || !image || image.startsWith('/cars/')}
+                          style={{
+                            padding: '6px 12px',
+                            background: aiEnhanced 
+                              ? 'rgba(34,197,94,0.1)' 
+                              : 'linear-gradient(135deg, rgba(147,51,234,0.2) 0%, rgba(79,70,229,0.2) 100%)',
+                            border: `1px solid ${aiEnhanced ? 'rgba(34,197,94,0.4)' : 'rgba(147,51,234,0.4)'}`,
+                            borderRadius: 3,
+                            color: aiEnhanced ? '#22c55e' : 'var(--ai)',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            letterSpacing: '0.06em',
+                            textTransform: 'uppercase',
+                            cursor: (!image || image.startsWith('/cars/')) ? 'not-allowed' : 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            opacity: (!image || image.startsWith('/cars/')) ? 0.4 : 1
+                          }}
+                        >
+                          {aiEnhancing ? (
+                            <RefreshCw size={11} style={{ animation: 'spin 1s linear infinite' }} />
+                          ) : (
+                            <Sparkles size={11} />
+                          )}
+                          {aiEnhancing ? 'Procesando...' : aiEnhanced ? 'Mejorada con IA ✓' : 'Mejorar con IA'}
+                        </button>
+                      </div>
+
+                      {/* Métricas de Peso */}
+                      <p style={{ fontSize: 9, color: 'var(--fg-tertiary)', marginTop: 6 }}>
+                        {optimizedWeight ? (
+                          <span>Peso optimizado en WebP: <strong style={{ color: 'var(--brand)' }}>{optimizedWeight}</strong></span>
+                        ) : (
+                          'Formatos soportados: JPG, PNG, WEBP. Compresión automática activa.'
+                        )}
+                      </p>
+                    </div>
                   </div>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: 'var(--fg-secondary)', cursor: 'pointer', marginTop: 14 }}>
+
+                  {/* Input de texto secundario para URL externa */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <label style={{ fontSize: 10, color: 'var(--fg-tertiary)' }}>O ingrese URL directa</label>
+                    <input
+                      type="text"
+                      value={image.startsWith('data:') ? 'Imagen cargada en Base64' : image}
+                      onChange={e => {
+                        if (!e.target.value.startsWith('Imagen')) {
+                          setImage(e.target.value)
+                          setOptimizedWeight(null)
+                          setAiEnhanced(false)
+                        }
+                      }}
+                      style={{ padding: '6px 10px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 3, fontSize: 11, color: 'var(--fg-secondary)', outline: 'none' }}
+                      placeholder="/cars/sedan.png"
+                    />
+                  </div>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, fontWeight: 600, color: 'var(--fg-secondary)', cursor: 'pointer', marginTop: 14 }}>
                     <input type="checkbox" checked={featured} onChange={e => setFeatured(e.target.checked)} style={{ accentColor: 'var(--brand)' }} />
                     Destacar unidad en portada
                   </label>
