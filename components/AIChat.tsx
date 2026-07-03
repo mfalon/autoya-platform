@@ -176,7 +176,7 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
 
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript
-      setInput(transcript)
+      handleInputChange({ target: { value: transcript } } as any)
       setIsListening(false)
       // Auto-send after voice
       setTimeout(() => inputRef.current?.form?.requestSubmit(), 300)
