@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Car, DollarSign, Settings, Image as ImageIcon, Save, Check, Upload, Sparkles, RefreshCw } from 'lucide-react'
+import { X, Car, DollarSign, Settings, Image as ImageIcon, Save, Check, Upload, Sparkles, RefreshCw, Camera } from 'lucide-react'
 import type { Vehicle } from '@/data/vehicles'
 
 interface VehicleEditModalProps {
@@ -46,6 +46,49 @@ export default function VehicleEditModal({ vehicle, onClose, onSave }: VehicleEd
   const [aiEnhancing, setAiEnhancing] = useState(false)
   const [aiEnhanced, setAiEnhanced] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // QR Mobile Camera Sync states & hooks
+  const [syncId, setSyncId] = useState('')
+  const [pollingActive, setPollingActive] = useState(false)
+  const [showQr, setShowQr] = useState(false)
+  const [localIp, setLocalIp] = useState('')
+
+  // Inicializar syncId
+  useEffect(() => {
+    setSyncId(`sync-${Date.now()}-${Math.floor(Math.random() * 1000)}`)
+    
+    // Intentar deducir la IP local o de red si estamos en desarrollo
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      setLocalIp('192.168.1.100') // Valor por defecto instructivo
+    }
+  }, [])
+
+  // Hook de Polling para verificar si el móvil envió la foto
+  useEffect(() => {
+    if (!pollingActive || !syncId) return
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/vehiculos/camera-sync?syncId=${syncId}`)
+        const data = await res.json()
+        
+        if (res.ok && data.success && data.image) {
+          setImage(data.image)
+          
+          // Peso
+          const sizeBytes = Math.round((data.image.length * 3) / 4)
+          setOptimizedWeight(`${(sizeBytes / 1024).toFixed(1)} KB`)
+          setAiEnhanced(false)
+          setPollingActive(false)
+          setShowQr(false)
+        }
+      } catch (err) {
+        console.error('[Camera Sync Polling] Error:', err)
+      }
+    }, 2000)
+
+    return () => clearInterval(interval)
+  }, [pollingActive, syncId])
 
   // Compresión automática de imágenes a WebP ligero
   const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -398,7 +441,7 @@ export default function VehicleEditModal({ vehicle, onClose, onSave }: VehicleEd
                         style={{ display: 'none' }}
                       />
                       
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         <button
                           type="button"
                           onClick={() => fileInputRef.current?.click()}
@@ -443,6 +486,32 @@ export default function VehicleEditModal({ vehicle, onClose, onSave }: VehicleEd
                           )}
                           {aiEnhancing ? 'Procesando...' : aiEnhanced ? 'Mejorada con IA ✓' : 'Mejorar con IA'}
                         </button>
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowQr(!showQr)
+                            setPollingActive(!showQr)
+                          }}
+                          style={{
+                            padding: '6px 12px',
+                            background: showQr ? 'rgba(245,158,11,0.1)' : 'var(--bg-elevated)',
+                            border: `1px solid ${showQr ? 'rgba(245,158,11,0.4)' : 'var(--border)'}`,
+                            borderRadius: 3,
+                            color: showQr ? '#f59e0b' : 'var(--fg-secondary)',
+                            fontSize: 10,
+                            fontWeight: 700,
+                            letterSpacing: '0.06em',
+                            textTransform: 'uppercase',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4
+                          }}
+                        >
+                          <Camera size={11} style={{ color: showQr ? '#f59e0b' : 'inherit' }} />
+                          {showQr ? 'Cerrar QR' : 'QR Cámara'}
+                        </button>
                       </div>
 
                       {/* Métricas de Peso */}
@@ -455,6 +524,79 @@ export default function VehicleEditModal({ vehicle, onClose, onSave }: VehicleEd
                       </p>
                     </div>
                   </div>
+
+                  {/* Panel Código QR Sincronización */}
+                  <AnimatePresence>
+                    {showQr && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        style={{
+                          background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                          borderRadius: 4, padding: 14, marginBottom: 12, overflow: 'hidden',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10
+                        }}
+                      >
+                        <p style={{ fontSize: 11, color: 'var(--fg-secondary)', textAlign: 'center', fontWeight: 600 }}>
+                          📷 Escanee para tomar fotos desde el móvil
+                        </p>
+                        
+                        {/* URL generada para el QR */}
+                        {(() => {
+                          let finalUrl = ''
+                          if (typeof window !== 'undefined') {
+                            if (window.location.hostname === 'localhost' && localIp) {
+                              finalUrl = `http://${localIp}:3000/camera?syncId=${syncId}`
+                            } else {
+                              finalUrl = `${window.location.origin}/camera?syncId=${syncId}`
+                            }
+                          }
+                          const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(finalUrl)}`
+                          
+                          return (
+                            <>
+                              <div style={{
+                                width: 138, height: 138, background: '#fff', padding: 4,
+                                borderRadius: 4, display: 'flex', alignItems: 'center', justifyContent: 'center'
+                              }}>
+                                <img src={qrUrl} alt="QR Code" style={{ width: '130px', height: '130px' }} />
+                              </div>
+
+                              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                <label style={{ fontSize: 9, color: 'var(--fg-tertiary)' }}>
+                                  {typeof window !== 'undefined' && window.location.hostname === 'localhost' 
+                                    ? 'IP Local de tu Computadora (para pruebas en WiFi local):' 
+                                    : 'Enlace del Portal Móvil:'}
+                                </label>
+                                {typeof window !== 'undefined' && window.location.hostname === 'localhost' ? (
+                                  <input
+                                    type="text"
+                                    value={localIp}
+                                    onChange={e => setLocalIp(e.target.value)}
+                                    placeholder="192.168.1.XX"
+                                    style={{
+                                      padding: '6px 8px', background: 'var(--bg-card)', border: '1px solid var(--border)',
+                                      borderRadius: 3, fontSize: 10, color: 'var(--fg-primary)', outline: 'none'
+                                    }}
+                                  />
+                                ) : (
+                                  <p style={{ fontSize: 9, color: 'var(--fg-tertiary)', wordBreak: 'break-all', fontFamily: 'monospace' }}>
+                                    {finalUrl}
+                                  </p>
+                                )}
+                              </div>
+                            </>
+                          )
+                        })()}
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 10, color: 'var(--fg-tertiary)' }}>
+                          <RefreshCw size={10} style={{ animation: 'spin 2s linear infinite', color: '#f59e0b' }} />
+                          <span>Esperando captura del celular...</span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
 
                   {/* Input de texto secundario para URL externa */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
