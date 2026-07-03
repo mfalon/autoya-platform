@@ -35,6 +35,31 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
   const recognitionRef = useRef<any>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Memoria y Sesión
+  const [sessionId, setSessionId] = useState<string>('')
+
+  // 1. Inicializar sesión y cargar historial persistente
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      let id = localStorage.getItem('autoya_chat_session_id')
+      if (!id) {
+        id = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+        localStorage.setItem('autoya_chat_session_id', id)
+      }
+      setSessionId(id)
+
+      // Cargar historial de base de datos
+      fetch(`/api/chat/history?sessionId=${id}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.messages && data.messages.length > 0) {
+            setMessages(data.messages)
+          }
+        })
+        .catch(err => console.error('[History UI] Error al precargar historial:', err))
+    }
+  }, [])
+
   // Función para subir y procesar imagen con Gemini Vision
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -99,8 +124,11 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
     window.speechSynthesis.speak(utterance)
   }
 
-  const { messages, input, setInput, handleInputChange, handleSubmit, isLoading, error, append } = useChat({
+  const { messages, input, setInput, handleInputChange, handleSubmit, isLoading, error, append, setMessages } = useChat({
     api: '/api/chat',
+    body: {
+      sessionId,
+    },
     onError: (err: any) => {
       if (err.message?.includes('API key') || err.message?.includes('503')) {
         setNoApiKey(true)

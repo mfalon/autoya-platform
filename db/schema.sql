@@ -88,3 +88,51 @@ CREATE TRIGGER vehiculos_updated_at
 CREATE TRIGGER tramites_updated_at
   BEFORE UPDATE ON public.tramites_legales
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ── 4. Memoria Vectorial (pgvector) para Asesor Premium ──────────
+-- Habilitar extensión de vectores si no está habilitada
+CREATE EXTENSION IF NOT EXISTS vector;
+
+CREATE TABLE IF NOT EXISTS public.chat_memoria (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  session_id  TEXT NOT NULL,
+  mensaje     TEXT NOT NULL,
+  rol         TEXT NOT NULL CHECK (rol IN ('user','assistant')),
+  embedding   vector(768),   -- vector para text-embedding-004 de Gemini
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- Índice de coseno similitud para acelerar consultas vectoriales
+CREATE INDEX IF NOT EXISTS chat_memoria_embedding_idx 
+  ON public.chat_memoria 
+  USING ivfflat (embedding vector_cosine_ops);
+
+-- Función RPC para buscar recuerdos por distancia coseno
+CREATE OR REPLACE FUNCTION public.buscar_memorias_chat (
+  query_session_id TEXT,
+  query_embedding vector(768),
+  match_threshold float,
+  match_count int
+)
+RETURNS TABLE (
+  id UUID,
+  mensaje TEXT,
+  similarity float
+)
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RETURN QUERY
+  SELECT
+    chat_memoria.id,
+    chat_memoria.mensaje,
+    1 - (chat_memoria.embedding <=> query_embedding) AS similarity
+  FROM chat_memoria
+  WHERE chat_memoria.session_id = query_session_id
+    AND chat_memoria.rol = 'user'
+    AND chat_memoria.embedding IS NOT NULL
+    AND 1 - (chat_memoria.embedding <=> query_embedding) > match_threshold
+  ORDER BY chat_memoria.embedding <=> query_embedding
+  LIMIT match_count;
+END;
+$$;

@@ -3,11 +3,12 @@ import { streamText, tool } from 'ai'
 import { z } from 'zod'
 import { VEHICLES, type Vehicle } from '@/data/vehicles'
 import { obtenerVehiculos } from '@/services/vehiculos'
+import { guardarMensajeMemoria, buscarRecuerdosSemanticos } from '@/services/memoria'
 
 // ══════════════════════════════════════════════════════════════
 // ASESOR PREMIUM — System Prompt Generator
 // ══════════════════════════════════════════════════════════════
-function getAsesorPrompt(vehiclesList: Vehicle[]) {
+function getAsesorPrompt(vehiclesList: Vehicle[], recuerdosContext = '') {
   return `
 Eres el "Asesor Premium", un consultor automotriz de alta gama experto en AutoYa. Eres sumamente profesional, educado, atento y experto en el mercado automotor argentino. Tu único objetivo en la vida es asesorar formalmente al cliente para CERRAR LA VENTA o asegurar la RESERVA HOY MISMO.
 
@@ -24,6 +25,7 @@ Tú controlas la interfaz. No describas los autos con largos textos. Utiliza las
 
 STOCK DISPONIBLE:
 ${vehiclesList.map(v => `- ${v.brand} ${v.model} ${v.version} (${v.year}) · ${v.body_type} · ${v.condition} · Lista: $${v.precio_ars.toLocaleString('es-AR')} ARS · Piso: $${v.precio_piso_ars.toLocaleString('es-AR')} ARS · ID: ${v.id}`).join('\n')}
+${recuerdosContext}
 
 REGLA DE ORO: Si el cliente muestra interés concreto, ejecuta lanzar_cierre_sena de manera inmediata.
 `.trim()
@@ -72,7 +74,7 @@ const tools = {
 }
 
 export async function POST(req: Request) {
-  const { messages } = await req.json()
+  const { messages, sessionId } = await req.json()
 
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
   if (!apiKey) {
@@ -82,9 +84,32 @@ export async function POST(req: Request) {
     )
   }
 
+  // 1. Búsqueda vectorial semántica de recuerdos si hay sesión
+  let recuerdosContext = ''
+  const lastUserMsg = messages[messages.length - 1]?.content || ''
+  if (sessionId && lastUserMsg) {
+    try {
+      const recuerdos = await buscarRecuerdosSemanticos(sessionId, lastUserMsg)
+      if (recuerdos.length > 0) {
+        recuerdosContext = `\n\nRECUERDOS DE CHARLAS PREVIAS CON ESTE CLIENTE (Úsalos con naturalidad si es relevante):\n${recuerdos.map(r => `- El cliente mencionó: "${r}"`).join('\n')}`
+      }
+    } catch (memErr) {
+      console.error('[Chat API] Error al obtener recuerdos semánticos:', memErr)
+    }
+  }
+
   // Obtenemos los vehículos desde el servicio adaptado (Supabase o Fallback)
   const vehiculos = await obtenerVehiculos()
-  const systemPrompt = getAsesorPrompt(vehiculos)
+  const systemPrompt = getAsesorPrompt(vehiculos, recuerdosContext)
+
+  // 2. Persistir de forma asíncrona el mensaje enviado por el usuario
+  if (sessionId && lastUserMsg) {
+    guardarMensajeMemoria({
+      sessionId,
+      mensaje: lastUserMsg,
+      rol: 'user'
+    }).catch(err => console.error('[Chat API] Error al guardar mensaje de usuario:', err))
+  }
 
   const result = streamText({
     model: google('gemini-2.0-flash-exp') as any,
@@ -93,6 +118,20 @@ export async function POST(req: Request) {
     temperature: 0.5, // Menor temperatura para mantener el tono profesional y evitar desvíos del rol
     maxSteps: 5,
     tools,
+    onFinish: async ({ text }: any) => {
+      // 3. Persistir de forma asíncrona la respuesta completada por la IA
+      if (sessionId && text) {
+        try {
+          await guardarMensajeMemoria({
+            sessionId,
+            mensaje: text,
+            rol: 'assistant'
+          })
+        } catch (err) {
+          console.error('[Chat API] Error al guardar respuesta del asistente:', err)
+        }
+      }
+    }
   } as any)
 
   return (result as any).toDataStreamResponse()
