@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   DndContext,
@@ -109,21 +109,47 @@ function SortableCard({ tramite }: { tramite: Tramite }) {
 }
 
 export default function TransferenciasPage() {
-  const [tramites, setTramites] = useState<Tramite[]>(MOCK_TRAMITES)
+  const [tramites, setTramites] = useState<Tramite[]>([])
+  const [loading, setLoading] = useState(true)
   const [activeId, setActiveId] = useState<string | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
+  // Cargar trámites desde la base de datos
+  useEffect(() => {
+    fetch('/api/tramites')
+      .then(res => res.json())
+      .then(data => {
+        setTramites(data)
+        setLoading(false)
+      })
+      .catch(err => {
+        console.error('[Kanban] Error al cargar trámites:', err)
+        setLoading(false)
+      })
+  }, [])
+
   const handleDragStart = ({ active }: DragStartEvent) => setActiveId(active.id as string)
 
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
+  const handleDragEnd = async ({ active, over }: DragEndEvent) => {
     setActiveId(null)
     if (!over) return
     const overId = over.id as string
     const colIds = COLUMNS.map(c => c.id)
     if (colIds.includes(overId as EstadoTramite)) {
+      // 1. Actualización optimista local
       setTramites(prev => prev.map(t =>
         t.id === active.id ? { ...t, estado: overId as EstadoTramite } : t
       ))
+      // 2. Persistencia en la base de datos
+      try {
+        await fetch('/api/tramites', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: active.id, estado: overId }),
+        })
+      } catch (err) {
+        console.error('[Kanban] Error al actualizar estado del trámite:', err)
+      }
     }
   }
 
@@ -159,7 +185,12 @@ export default function TransferenciasPage() {
 
       {/* Kanban */}
       <div style={{ flex: 1, overflowX: 'auto', padding: '20px 24px' }}>
-        <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+        {loading ? (
+          <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--fg-secondary)', fontSize: 13 }}>
+            Cargando tablero Kanban...
+          </div>
+        ) : (
+          <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
           <div style={{ display: 'flex', gap: 16, height: '100%', minWidth: 900 }}>
             {COLUMNS.map(col => {
               const colTramites = tramites.filter(t => t.estado === col.id)
@@ -253,7 +284,8 @@ export default function TransferenciasPage() {
           <DragOverlay>
             {activeTramite && <TramiteCard tramite={activeTramite} isDragging />}
           </DragOverlay>
-        </DndContext>
+          </DndContext>
+        )}
       </div>
     </div>
   )

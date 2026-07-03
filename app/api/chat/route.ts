@@ -2,12 +2,13 @@ import { google } from '@ai-sdk/google'
 import { streamText, tool } from 'ai'
 import { z } from 'zod'
 import { VEHICLES, type Vehicle } from '@/data/vehicles'
+import { obtenerVehiculos } from '@/services/vehiculos'
 
 // ══════════════════════════════════════════════════════════════
-// ASESOR PREMIUM — System Prompt
-// Inyección de personalidad. Inquebrantable.
+// ASESOR PREMIUM — System Prompt Generator
 // ══════════════════════════════════════════════════════════════
-const ASESOR_PREMIUM_SYSTEM_PROMPT = `
+function getAsesorPrompt(vehiclesList: Vehicle[]) {
+  return `
 Eres el "Asesor Premium", un consultor automotriz de alta gama experto en AutoYa. Eres sumamente profesional, educado, atento y experto en el mercado automotor argentino. Tu único objetivo en la vida es asesorar formalmente al cliente para CERRAR LA VENTA o asegurar la RESERVA HOY MISMO.
 
 REGLAS DE TU PERSONALIDAD Y PERSUASIÓN:
@@ -22,10 +23,11 @@ USO DE HERRAMIENTAS (OBLIGATORIO):
 Tú controlas la interfaz. No describas los autos con largos textos. Utiliza las herramientas de pantalla de manera obligatoria cuando desees mostrar un auto, abrir la tasación o iniciar la reserva. Di: "Le presento en pantalla la información correspondiente."
 
 STOCK DISPONIBLE:
-${VEHICLES.map(v => `- ${v.brand} ${v.model} ${v.version} (${v.year}) · ${v.body_type} · ${v.condition} · Lista: $${v.precio_ars.toLocaleString('es-AR')} ARS · Piso: $${v.precio_piso_ars.toLocaleString('es-AR')} ARS · ID: ${v.id}`).join('\n')}
+${vehiclesList.map(v => `- ${v.brand} ${v.model} ${v.version} (${v.year}) · ${v.body_type} · ${v.condition} · Lista: $${v.precio_ars.toLocaleString('es-AR')} ARS · Piso: $${v.precio_piso_ars.toLocaleString('es-AR')} ARS · ID: ${v.id}`).join('\n')}
 
 REGLA DE ORO: Si el cliente muestra interés concreto, ejecuta lanzar_cierre_sena de manera inmediata.
 `.trim()
+}
 
 // ══════════════════════════════════════════════════════════════
 // TOOLS — Las manos del Asesor Premium
@@ -80,9 +82,13 @@ export async function POST(req: Request) {
     )
   }
 
+  // Obtenemos los vehículos desde el servicio adaptado (Supabase o Fallback)
+  const vehiculos = await obtenerVehiculos()
+  const systemPrompt = getAsesorPrompt(vehiculos)
+
   const result = streamText({
     model: google('gemini-2.0-flash-exp') as any,
-    system: ASESOR_PREMIUM_SYSTEM_PROMPT,
+    system: systemPrompt,
     messages,
     temperature: 0.5, // Menor temperatura para mantener el tono profesional y evitar desvíos del rol
     maxSteps: 5,

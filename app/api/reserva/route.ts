@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { crearReserva, type ReservaPayload } from '@/services/mercadopago'
 import { VEHICLES } from '@/data/vehicles'
+import { crearTramite } from '@/services/tramites'
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,6 +21,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Vehículo no encontrado' }, { status: 404 })
     }
 
+    // 1. Creamos el trámite en el Kanban (Supabase o Fallback)
+    await crearTramite({
+      vehiculo_id: vehicleId,
+      comprador_nombre: comprador.nombre,
+      comprador_dni: comprador.dni,
+      comprador_email: comprador.email,
+      notas: `Preferencia de pago MercadoPago creada de forma segura.`,
+    })
+
+    // 2. Generamos el link de checkout de MercadoPago
     const payload: ReservaPayload = { vehicle, comprador }
     const result = await crearReserva(payload)
 
