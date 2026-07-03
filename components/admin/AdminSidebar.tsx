@@ -1,22 +1,22 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
+import { useState, useEffect } from 'react'
 import {
   LayoutDashboard, Car, FileText, Users, LogOut,
   Shield, TrendingUp, Settings, DollarSign, ShieldAlert
 } from 'lucide-react'
-import { MOCK_USER } from '@/types/admin'
 
 const NAV = [
-  { href: '/admin/dashboard',      label: 'Dashboard',      icon: LayoutDashboard },
-  { href: '/admin/vehiculos',      label: 'Vehículos',      icon: Car },
-  { href: '/admin/transferencias', label: 'Transferencias', icon: FileText },
-  { href: '/admin/clientes',       label: 'Clientes',       icon: Users },
-  { href: '/admin/configuracion',  label: 'Configuración',  icon: Settings },
-  { href: '/admin/precios',        label: 'Precios ACARA',  icon: DollarSign },
-  { href: '/admin/auditoria',      label: 'Auditoría Flota',  icon: ShieldAlert },
+  { href: '/admin/dashboard',      label: 'Dashboard',      icon: LayoutDashboard,      roles: ['role_admin', 'role_ventas', 'role_gestoria'] },
+  { href: '/admin/vehiculos',      label: 'Vehículos',      icon: Car,                  roles: ['role_admin', 'role_ventas'] },
+  { href: '/admin/transferencias', label: 'Transferencias', icon: FileText,             roles: ['role_admin', 'role_gestoria'] },
+  { href: '/admin/clientes',       label: 'Clientes',       icon: Users,                roles: ['role_admin', 'role_ventas'] },
+  { href: '/admin/configuracion',  label: 'Configuración',  icon: Settings,             roles: ['role_admin'] },
+  { href: '/admin/precios',        label: 'Precios ACARA',  icon: DollarSign,           roles: ['role_admin', 'role_ventas'] },
+  { href: '/admin/auditoria',      label: 'Auditoría Intranet', icon: ShieldAlert,       roles: ['role_admin'] },
 ]
 
 const ROL_LABEL: Record<string, string> = {
@@ -33,6 +33,27 @@ const ROL_COLOR: Record<string, string> = {
 
 export default function AdminSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const [user, setUser] = useState<{ email: string; role: string; name: string } | null>(null)
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('autoya_user')
+    if (userStr) {
+      setUser(JSON.parse(userStr))
+    }
+  }, [])
+
+  const handleLogout = () => {
+    localStorage.removeItem('autoya_user')
+    router.push('/admin/login')
+  }
+
+  // Si no ha cargado la sesión, mostramos esqueleto o valores seguros
+  const userName = user?.name || 'Cargando...'
+  const userRole = user?.role || 'role_admin'
+
+  // Filtrar links de navegación según el rol
+  const allowedNav = NAV.filter(item => item.roles.includes(userRole))
 
   return (
     <aside style={{
@@ -87,20 +108,20 @@ export default function AdminSidebar() {
             fontSize: 13, fontWeight: 700, color: 'var(--brand)',
             flexShrink: 0,
           }}>
-            {MOCK_USER.nombre.charAt(0)}
+            {userName.charAt(0)}
           </div>
           <div style={{ minWidth: 0 }}>
             <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
-              {MOCK_USER.nombre}
+              {userName}
             </p>
             <span style={{
               fontSize: 10,
               fontWeight: 600,
               letterSpacing: '0.08em',
               textTransform: 'uppercase',
-              color: ROL_COLOR[MOCK_USER.rol],
+              color: ROL_COLOR[userRole],
             }}>
-              {ROL_LABEL[MOCK_USER.rol]}
+              {ROL_LABEL[userRole]}
             </span>
           </div>
         </div>
@@ -108,7 +129,7 @@ export default function AdminSidebar() {
 
       {/* Navigation */}
       <nav style={{ flex: 1, padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-        {NAV.map(({ href, label, icon: Icon }) => {
+        {allowedNav.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href || pathname.startsWith(href + '/')
           return (
             <Link key={href} href={href} style={{ textDecoration: 'none' }}>
@@ -153,14 +174,17 @@ export default function AdminSidebar() {
             <TrendingUp size={14} /> Ver sitio público
           </div>
         </Link>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          padding: '9px 12px',
-          color: 'var(--fg-tertiary)',
-          fontSize: 13,
-          cursor: 'pointer',
-          borderRadius: 4,
-        }}>
+        <div
+          onClick={handleLogout}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '9px 12px',
+            color: 'var(--fg-tertiary)',
+            fontSize: 13,
+            cursor: 'pointer',
+            borderRadius: 4,
+          }}
+        >
           <LogOut size={14} /> Cerrar sesión
         </div>
       </div>

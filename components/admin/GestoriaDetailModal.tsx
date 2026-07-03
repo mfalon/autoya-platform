@@ -128,7 +128,95 @@ export default function GestoriaDetailModal({ tramite, onClose, onUpdate }: Gest
 
   // Simulación de descarga de PDF 08 Digital
   const handleDownloadPdf = () => {
-    alert(`Expediente Digital 08 generado para la DNRPA. Iniciando descarga de borrador oficial de AutoYa.`);
+    // Importación dinámica de jsPDF para evitar crashes en Server-Side Rendering (SSR)
+    import('jspdf').then(({ jsPDF }) => {
+      const doc = new jsPDF()
+
+      // ── Encabezado Institucional ──────────────────────────────
+      doc.setFillColor(34, 43, 69) // Azul marino oscuro corporativo
+      doc.rect(0, 0, 210, 16, 'F')
+
+      doc.setTextColor(255, 255, 255)
+      doc.setFont('Helvetica', 'bold')
+      doc.setFontSize(9)
+      doc.text('DIRECCIÓN NACIONAL DE LOS REGISTROS NACIONALES DE LA PROPIEDAD DEL AUTOMOTOR', 105, 10, { align: 'center' })
+
+      // Título del formulario
+      doc.setTextColor(0, 0, 0)
+      doc.setFontSize(15)
+      doc.text('FORMULARIO 08 - SOLICITUD DE TRANSFERENCIA DIGITAL', 15, 30)
+
+      doc.setFontSize(9)
+      doc.setFont('Helvetica', 'normal')
+      doc.text(`Fecha de Emisión: ${new Date().toLocaleDateString('es-AR')}`, 15, 36)
+      doc.text(`ID de Trámite: #${tramite.id}`, 15, 42)
+
+      // Línea separadora
+      doc.setDrawColor(200, 200, 200)
+      doc.line(15, 48, 195, 48)
+
+      // ── Sección A: Datos del Vehículo ────────────────────
+      doc.setFont('Helvetica', 'bold')
+      doc.setFontSize(11)
+      doc.text('A. DATOS DEL AUTOMOTOR', 15, 56)
+
+      doc.setFont('Helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.text(`Patente / Dominio: MOCK-789`, 15, 63)
+      doc.text(`Marca de fábrica: ${tramite.vehiculo_brand.toUpperCase()}`, 15, 69)
+      doc.text(`Modelo comercial: ${tramite.vehiculo_model.toUpperCase()}`, 15, 75)
+      doc.text(`Año / Modelo: ${tramite.vehiculo_year}`, 15, 81)
+      doc.text(`Nro. Chasis: 8G3HD982173H921`, 15, 87)
+      doc.text(`Nro. Motor: 1.4L-T-98716238`, 15, 93)
+
+      doc.line(15, 99, 195, 99)
+
+      // ── Sección B: Datos del Transmitente (Vendedor) ───────────
+      doc.setFont('Helvetica', 'bold')
+      doc.setFontSize(11)
+      doc.text('B. DATOS DEL TRANSMITENTE (VENDEDOR)', 15, 107)
+
+      doc.setFont('Helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.text('Apellido y Nombres / Razón Social: AUTOYA S.A.', 15, 114)
+      doc.text('C.U.I.T. / C.U.I.L.: 30-71122334-9', 15, 120)
+      doc.text('Domicilio Real / Legal: Av. del Libertador 12500, San Isidro, Buenos Aires', 15, 126)
+      doc.text('Porcentaje de titularidad a transmitir: 100%', 15, 132)
+
+      doc.line(15, 138, 195, 138)
+
+      // ── Sección C: Datos del Adquirente (Comprador) ───────────
+      doc.setFont('Helvetica', 'bold')
+      doc.setFontSize(11)
+      doc.text('C. DATOS DEL ADQUIRENTE (COMPRADOR)', 15, 146)
+
+      doc.setFont('Helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.text(`Apellido y Nombres: ${nombre.toUpperCase()}`, 15, 153)
+      doc.text(`Documento (DNI): ${dni}`, 15, 159)
+      doc.text(`C.U.I.L. / C.U.I.T.: ${ocrData?.cuil || 'XX-XXXXXXXX-X'}`, 15, 165)
+      doc.text(`Domicilio Real: ${ocrData?.domicilio?.toUpperCase() || 'DOMICILIO PENDIENTE DE VALIDACIÓN'}`, 15, 171)
+
+      // Cuadros de firmas certificadas
+      doc.setDrawColor(180, 180, 180)
+      doc.rect(15, 185, 80, 24)
+      doc.rect(115, 185, 80, 24)
+
+      doc.setFontSize(8)
+      doc.text('Firma y Certificación (Vendedor)', 55, 213, { align: 'center' })
+      doc.text('Firma y Certificación (Comprador)', 155, 213, { align: 'center' })
+
+      // Pie de página
+      doc.setFontSize(7)
+      doc.setTextColor(120, 120, 120)
+      doc.text('* Borrador oficial preliminar emitido de forma automatizada por el sistema AutoYa Gestoría para pre-carga DNRPA.', 15, 235)
+      doc.text('AutoYa Platform · Innovación Registral Automotriz.', 15, 240)
+
+      doc.save(`Borrador_Formulario_08_${tramite.id.slice(0, 8)}.pdf`)
+    }).catch(err => {
+      console.error('[PDF Exporter] Error loading jsPDF:', err)
+      alert('Error al inicializar el motor de descarga de PDF.')
+    })
   }
 
   return (
