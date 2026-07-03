@@ -6,6 +6,7 @@ import { Search, SlidersHorizontal, X, Car } from 'lucide-react';
 import CarCard from '@/components/CarCard';
 import AIChat from '@/components/AIChat';
 import ReservaModal from '@/components/ReservaModal';
+import VehicleDetailModal from '@/components/VehicleDetailModal';
 import { VEHICLES, type Vehicle, type BodyType } from '@/data/vehicles';
 import { formatARS } from '@/utils/currency';
 
@@ -28,6 +29,7 @@ export default function Home() {
   const [agentMaxPrice, setAgentMaxPrice] = useState<number | undefined>(undefined);
   const [agentActive, setAgentActive] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [bookingVehicle, setBookingVehicle] = useState<Vehicle | null>(null);
 
   const handleAgentFilter = (bodyTypes: string[], price?: number) => {
     setAgentTypes(bodyTypes);
@@ -60,7 +62,7 @@ export default function Home() {
 
       {/* ══ LEFT: AI Panel ══════════════════════════════════ */}
       <aside style={{ width: 340, flexShrink: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-        <AIChat onAgentFilter={handleAgentFilter} onReservar={setSelectedVehicle} />
+        <AIChat onAgentFilter={handleAgentFilter} onReservar={(v) => { setSelectedVehicle(v); setBookingVehicle(v); }} />
       </aside>
 
       {/* ══ RIGHT: Catalog ══════════════════════════════════ */}
@@ -287,11 +289,22 @@ export default function Home() {
         </div>
       </main>
 
-      {/* Reserva Modal */}
+      {/* Vehicle Details Modal */}
       {selectedVehicle && (
-        <ReservaModal
+        <VehicleDetailModal
           vehicle={selectedVehicle}
           onClose={() => setSelectedVehicle(null)}
+          onReservar={() => {
+            setBookingVehicle(selectedVehicle);
+          }}
+        />
+      )}
+
+      {/* Reserva Modal */}
+      {bookingVehicle && (
+        <ReservaModal
+          vehicle={bookingVehicle}
+          onClose={() => setBookingVehicle(null)}
         />
       )}
     </div>
