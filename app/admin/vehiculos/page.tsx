@@ -5,6 +5,7 @@ import { motion } from 'framer-motion'
 import { Plus, Search, Edit, Eye, Car } from 'lucide-react'
 import { VEHICLES, type Vehicle } from '@/data/vehicles'
 import { formatARS } from '@/utils/currency'
+import VehicleEditModal from '@/components/admin/VehicleEditModal'
 
 const ESTADO_COLORS = {
   disponible: { bg: 'rgba(34,197,94,0.1)', border: 'rgba(34,197,94,0.3)', color: '#22c55e' },
@@ -16,8 +17,13 @@ export default function VehiculosPage() {
   const [search, setSearch] = useState('')
   const [vehicles, setVehicles] = useState<Vehicle[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // Estado de edición/creación de vehículo
+  // undefined = cerrado, null = creando nuevo, Vehicle = editando
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null | undefined>(undefined)
 
-  useEffect(() => {
+  const loadVehicles = () => {
+    setLoading(true)
     fetch('/api/vehiculos')
       .then(res => res.json())
       .then(data => {
@@ -28,6 +34,10 @@ export default function VehiculosPage() {
         console.error('[Admin Inventario] Error al cargar vehículos:', err)
         setLoading(false)
       })
+  }
+
+  useEffect(() => {
+    loadVehicles()
   }, [])
 
   const filtered = vehicles.filter(v =>
@@ -74,11 +84,14 @@ export default function VehiculosPage() {
               style={{ background: 'transparent', fontSize: 13, color: 'var(--fg-primary)', border: 'none', outline: 'none', width: 160 }}
             />
           </div>
-          <button style={{
-            display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px',
-            background: 'var(--brand)', color: '#fff', border: 'none', borderRadius: 3,
-            fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer',
-          }}>
+          <button
+            onClick={() => setSelectedVehicle(null)}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px',
+              background: 'var(--brand)', color: '#fff', border: 'none', borderRadius: 3,
+              fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer',
+            }}
+          >
             <Plus size={13} /> Nuevo vehículo
           </button>
         </div>
@@ -160,16 +173,33 @@ export default function VehiculosPage() {
                     </td>
                     <td style={{ padding: '12px 16px' }}>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        {[Eye, Edit].map((Icon, idx) => (
-                          <button key={idx} style={{
+                        {/* Ver Sitio Público */}
+                        <button
+                          onClick={() => window.open('/', '_blank')}
+                          title="Ver en catálogo"
+                          style={{
                             width: 28, height: 28, borderRadius: 3,
                             background: 'var(--bg-elevated)', border: '1px solid var(--border)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                             cursor: 'pointer', color: 'var(--fg-secondary)',
-                          }}>
-                            <Icon size={12} />
-                          </button>
-                        ))}
+                          }}
+                        >
+                          <Eye size={12} />
+                        </button>
+
+                        {/* Editar Vehículo */}
+                        <button
+                          onClick={() => setSelectedVehicle(v)}
+                          title="Editar especificaciones"
+                          style={{
+                            width: 28, height: 28, borderRadius: 3,
+                            background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            cursor: 'pointer', color: 'var(--fg-secondary)',
+                          }}
+                        >
+                          <Edit size={12} />
+                        </button>
                       </div>
                     </td>
                   </motion.tr>
@@ -179,6 +209,15 @@ export default function VehiculosPage() {
           </table>
         </div>
       </div>
+
+      {/* Editor/Creador Modal */}
+      {selectedVehicle !== undefined && (
+        <VehicleEditModal
+          vehicle={selectedVehicle}
+          onClose={() => setSelectedVehicle(undefined)}
+          onSave={() => loadVehicles()}
+        />
+      )}
     </div>
   )
 }
