@@ -8,6 +8,7 @@ interface VehicleDetailModalProps {
   vehicle: Vehicle
   onClose: () => void
   onReservar: () => void
+  initialTab?: 'ficha' | 'financiacion'
 }
 
 const DEFAULT_PLAZOS = [
@@ -17,8 +18,8 @@ const DEFAULT_PLAZOS = [
   { meses: 48, tna: 0.75 },
 ]
 
-export default function VehicleDetailModal({ vehicle, onClose, onReservar }: VehicleDetailModalProps) {
-  const [activeTab, setActiveTab] = useState<'ficha' | 'financiacion'>('ficha')
+export default function VehicleDetailModal({ vehicle, onClose, onReservar, initialTab = 'ficha' }: VehicleDetailModalProps) {
+  const [activeTab, setActiveTab] = useState<'ficha' | 'financiacion'>(initialTab)
   const [currentImgIdx, setCurrentImgIdx] = useState(0)
 
   // Datos de tasas y leyendas dinámicas desde la API

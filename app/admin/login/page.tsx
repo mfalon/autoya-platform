@@ -11,8 +11,25 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const handleLogin = (userEmail: string, role: string, name: string) => {
+  const handleLogin = async (userEmail: string, role: string, name: string) => {
     setLoading(true)
+    
+    // Guardar registro de inicio de sesión en auditoría
+    try {
+      await fetch('/api/auditoria/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usuario: name,
+          rol: role,
+          accion: 'Inicio de Sesión',
+          detalles: `Ingresó al sistema de administración desde el correo ${userEmail}`
+        })
+      })
+    } catch (e) {
+      console.error('[Login Audit] Error al auditar login:', e)
+    }
+
     setTimeout(() => {
       const user = { email: userEmail, role, name }
       localStorage.setItem('autoya_user', JSON.stringify(user))

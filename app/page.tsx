@@ -38,7 +38,18 @@ export default function Home() {
   // Estados de Modales e Interfaz
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [bookingVehicle, setBookingVehicle] = useState<Vehicle | null>(null);
+  const [detailInitialTab, setDetailInitialTab] = useState<'ficha' | 'financiacion'>('ficha');
   const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const handleSelectVehicle = (vehicle: Vehicle) => {
+    setDetailInitialTab('ficha');
+    setSelectedVehicle(vehicle);
+  };
+
+  const handleSimulateVehicle = (vehicle: Vehicle) => {
+    setDetailInitialTab('financiacion');
+    setSelectedVehicle(vehicle);
+  };
 
   const catalogRef = useRef<HTMLDivElement>(null);
   const financingRef = useRef<HTMLDivElement>(null);
@@ -572,7 +583,13 @@ export default function Home() {
                   gap: 20,
                 }}>
                   {filtered.map((v, i) => (
-                    <CarCard key={v.id} vehicle={v} index={i} onSelect={setSelectedVehicle} />
+                    <CarCard
+                      key={v.id}
+                      vehicle={v}
+                      index={i}
+                      onSelect={handleSelectVehicle}
+                      onSimulate={handleSimulateVehicle}
+                    />
                   ))}
                 </div>
               )}
@@ -828,6 +845,7 @@ export default function Home() {
           onReservar={() => {
             setBookingVehicle(selectedVehicle);
           }}
+          initialTab={detailInitialTab}
         />
       )}
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Zap, Clock, Gauge, MapPin, ArrowRight } from 'lucide-react';
+import { Zap, Clock, Gauge, MapPin, ArrowRight, Percent } from 'lucide-react';
 import { formatARS } from '@/utils/currency';
 import type { Vehicle } from '@/data/vehicles';
 
@@ -9,9 +9,10 @@ interface CarCardProps {
   vehicle: Vehicle;
   index?: number;
   onSelect?: (vehicle: Vehicle) => void;
+  onSimulate?: (vehicle: Vehicle) => void;
 }
 
-export default function CarCard({ vehicle, index = 0, onSelect }: CarCardProps) {
+export default function CarCard({ vehicle, index = 0, onSelect, onSimulate }: CarCardProps) {
   const isNew = vehicle.condition === '0km';
 
   return (
@@ -184,25 +185,50 @@ export default function CarCard({ vehicle, index = 0, onSelect }: CarCardProps) 
             </p>
           </div>
 
-          <motion.button
-            whileHover={{ scale: 1.04, backgroundColor: 'var(--brand-hover)' }}
-            whileTap={{ scale: 0.96 }}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              padding: '9px 16px',
-              background: 'var(--brand)',
-              color: '#fff',
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              border: 'none',
-              borderRadius: 3,
-              cursor: 'pointer',
-            }}
-          >
-            Ver más <ArrowRight size={12} />
-          </motion.button>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {onSimulate && (
+              <motion.button
+                whileHover={{ scale: 1.04, backgroundColor: 'rgba(224,34,50,0.1)' }}
+                whileTap={{ scale: 0.96 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSimulate(vehicle);
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 34, height: 34,
+                  background: 'none',
+                  border: '1px solid var(--brand-border)',
+                  color: 'var(--brand)',
+                  borderRadius: 3,
+                  cursor: 'pointer',
+                }}
+                title="Simular Financiación en Cuotas"
+              >
+                <Percent size={14} />
+              </motion.button>
+            )}
+
+            <motion.button
+              whileHover={{ scale: 1.04, backgroundColor: 'var(--brand-hover)' }}
+              whileTap={{ scale: 0.96 }}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                padding: '9px 16px',
+                background: 'var(--brand)',
+                color: '#fff',
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                border: 'none',
+                borderRadius: 3,
+                cursor: 'pointer',
+              }}
+            >
+              Ver más <ArrowRight size={12} />
+            </motion.button>
+          </div>
         </div>
       </div>
     </motion.article>

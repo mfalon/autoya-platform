@@ -105,6 +105,28 @@ export default function GestoriaDetailModal({ tramite, onClose, onUpdate }: Gest
       })
 
       if (response.ok) {
+        // Registrar en auditoría
+        let userAudit = 'Gestoría'
+        let roleAudit = 'role_gestoria'
+        if (typeof window !== 'undefined') {
+          const userStr = localStorage.getItem('autoya_user')
+          if (userStr) {
+            const u = JSON.parse(userStr)
+            userAudit = u.name
+            roleAudit = u.role
+          }
+        }
+        fetch('/api/auditoria/logs', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            usuario: userAudit,
+            rol: roleAudit,
+            accion: 'Modificación de Expediente',
+            detalles: `Actualizó datos del expediente #${tramite.id.slice(0, 8)}: Comprador ${nombre}, DNI: ${dni}`
+          })
+        }).catch(err => console.error('[Audit Log Error]', err))
+
         setSaved(true)
         onUpdate({
           ...tramite,
@@ -213,6 +235,29 @@ export default function GestoriaDetailModal({ tramite, onClose, onUpdate }: Gest
       doc.text('AutoYa Platform · Innovación Registral Automotriz.', 15, 240)
 
       doc.save(`Borrador_Formulario_08_${tramite.id.slice(0, 8)}.pdf`)
+
+      // Registrar descarga en auditoría
+      let userAudit = 'Gestoría'
+      let roleAudit = 'role_gestoria'
+      if (typeof window !== 'undefined') {
+        const userStr = localStorage.getItem('autoya_user')
+        if (userStr) {
+          const u = JSON.parse(userStr)
+          userAudit = u.name
+          roleAudit = u.role
+        }
+      }
+      fetch('/api/auditoria/logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          usuario: userAudit,
+          rol: roleAudit,
+          accion: 'Descarga PDF Formulario 08',
+          detalles: `Descargó borrador digital oficial en formato PDF para el trámite #${tramite.id.slice(0, 8)}`
+        })
+      }).catch(err => console.error('[Audit Log Error]', err))
+
     }).catch(err => {
       console.error('[PDF Exporter] Error loading jsPDF:', err)
       alert('Error al inicializar el motor de descarga de PDF.')

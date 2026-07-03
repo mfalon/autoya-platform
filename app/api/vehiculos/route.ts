@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { obtenerVehiculos, crearVehiculo, actualizarVehiculo } from '@/services/vehiculos'
+import { registrarAccion } from '@/services/auditoria'
 
 export async function GET() {
   try {
@@ -13,6 +14,9 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
+    const userAudit = req.headers.get('x-user-audit') || 'Sistema'
+    const roleAudit = req.headers.get('x-role-audit') || 'system'
+
     const body = await req.json()
     const { brand, model, version, year, condition, km, body_type, fuel_type, precio_ars, precio_piso_ars, color, estado, image, featured, specs } = body
 
@@ -38,6 +42,10 @@ export async function POST(req: Request) {
       specs: specs || { power_cv: 150, acceleration: '8.5s', top_speed: '210 km/h', autonomy: '650 km' }
     })
 
+    if (id) {
+      await registrarAccion(userAudit, roleAudit, 'Creación de Vehículo', `Creó unidad ${brand} ${model} (#${id.slice(0, 8)}) por valor de ${precio_ars} ARS`)
+    }
+
     return NextResponse.json({ success: !!id, id })
   } catch (error) {
     console.error('[API Vehiculos POST] Error:', error)
@@ -47,6 +55,9 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
   try {
+    const userAudit = req.headers.get('x-user-audit') || 'Sistema'
+    const roleAudit = req.headers.get('x-role-audit') || 'system'
+
     const body = await req.json()
     const { id, ...campos } = body
 
@@ -55,6 +66,10 @@ export async function PUT(req: Request) {
     }
 
     const success = await actualizarVehiculo(id, campos)
+    if (success) {
+      await registrarAccion(userAudit, roleAudit, 'Modificación de Vehículo', `Actualizó campos de la unidad #${id.slice(0, 8)} (${Object.keys(campos).join(', ')})`)
+    }
+
     return NextResponse.json({ success })
   } catch (error) {
     console.error('[API Vehiculos PUT] Error:', error)

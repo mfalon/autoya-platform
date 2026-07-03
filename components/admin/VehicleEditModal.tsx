@@ -69,10 +69,26 @@ export default function VehicleEditModal({ vehicle, onClose, onSave }: VehicleEd
       }
     }
 
+    // Obtener datos del usuario logueado para la auditoría
+    let userAudit = 'Sistema'
+    let roleAudit = 'system'
+    if (typeof window !== 'undefined') {
+      const userStr = localStorage.getItem('autoya_user')
+      if (userStr) {
+        const u = JSON.parse(userStr)
+        userAudit = u.name
+        roleAudit = u.role
+      }
+    }
+
     try {
       const response = await fetch('/api/vehiculos', {
         method: isEdit ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-user-audit': userAudit,
+          'x-role-audit': roleAudit
+        },
         body: JSON.stringify(payload),
       })
 
