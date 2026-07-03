@@ -2,9 +2,10 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, SlidersHorizontal, X, Car, ChevronDown } from 'lucide-react';
+import { Search, SlidersHorizontal, X, Car } from 'lucide-react';
 import CarCard from '@/components/CarCard';
 import AIChat from '@/components/AIChat';
+import ReservaModal from '@/components/ReservaModal';
 import { VEHICLES, type Vehicle, type BodyType } from '@/data/vehicles';
 import { formatARS } from '@/utils/currency';
 
@@ -26,6 +27,7 @@ export default function Home() {
   const [agentTypes, setAgentTypes] = useState<string[]>([]);
   const [agentMaxPrice, setAgentMaxPrice] = useState<number | undefined>(undefined);
   const [agentActive, setAgentActive] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
 
   const handleAgentFilter = (bodyTypes: string[], price?: number) => {
     setAgentTypes(bodyTypes);
@@ -277,13 +279,21 @@ export default function Home() {
                 gap: 16,
               }}>
                 {filtered.map((v, i) => (
-                  <CarCard key={v.id} vehicle={v} index={i} />
+                  <CarCard key={v.id} vehicle={v} index={i} onSelect={setSelectedVehicle} />
                 ))}
               </div>
             </>
           )}
         </div>
       </main>
+
+      {/* Reserva Modal */}
+      {selectedVehicle && (
+        <ReservaModal
+          vehicle={selectedVehicle}
+          onClose={() => setSelectedVehicle(null)}
+        />
+      )}
     </div>
   );
 }
