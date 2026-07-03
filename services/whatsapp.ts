@@ -31,38 +31,13 @@ Quedamos a su entera disposición para lo que requiera.
 Atentamente,
 Asesoría de Ventas AutoYa Premium.`
 
-  console.log('[WhatsApp Service] Iniciando envío de plantilla a:', telf)
-  console.log('[WhatsApp Service] Contenido:\n', mensajeTemplate)
-
-  // Guardar log en el archivo JSON local para el Dashboard
-  try {
-    let logs: WhatsappLog[] = []
-    try {
-      const fileData = await fs.readFile(LOGS_PATH, 'utf-8')
-      logs = JSON.parse(fileData)
-    } catch {
-      // no-op, el archivo no existe aún
-    }
-
-    const nuevoLog: WhatsappLog = {
-      id: `wa-${Date.now()}`,
-      nombre: datos.compradorNombre,
-      telefono: telf,
-      mensaje: mensajeTemplate,
-      fecha: new Date().toISOString(),
-      estado: 'simulado',
-    }
-
-    logs.unshift(nuevoLog)
-    await fs.writeFile(LOGS_PATH, JSON.stringify(logs, null, 2), 'utf-8')
-  } catch (err) {
-    console.error('[WhatsApp Service] Error al escribir log de notificaciones:', err)
-  }
-
   // Integración Twilio Mock / Real
   const accountSid = process.env.TWILIO_ACCOUNT_SID
   const authToken = process.env.TWILIO_AUTH_TOKEN
   const fromPhone = process.env.TWILIO_PHONE_NUMBER || 'whatsapp:+14155238886' // Sandbox Twilio
+
+  let envStatus: 'enviado' | 'simulado' | 'fallado' = 'simulado'
+  let success = true
 
   if (accountSid && authToken) {
     try {
@@ -82,20 +57,46 @@ Asesoría de Ventas AutoYa Premium.`
 
       if (res.ok) {
         console.log('[WhatsApp Service] ✅ Mensaje Twilio enviado con éxito')
-        return true
+        envStatus = 'enviado'
       } else {
         const errText = await res.text()
         console.error('[WhatsApp Service] ❌ Error Twilio API:', errText)
-        return false
+        envStatus = 'fallado'
+        success = false
       }
     } catch (err) {
       console.error('[WhatsApp Service] Error de red Twilio:', err)
-      return false
+      envStatus = 'fallado'
+      success = false
     }
   }
 
-  // Si no hay keys de Twilio, el simulador de checkout en disco cuenta como True (éxito simulado)
-  return true
+  // Guardar log en el archivo JSON local para el Dashboard con estado verídico
+  try {
+    let logs: WhatsappLog[] = []
+    try {
+      const fileData = await fs.readFile(LOGS_PATH, 'utf-8')
+      logs = JSON.parse(fileData)
+    } catch {
+      // no-op, el archivo no existe aún
+    }
+
+    const nuevoLog: WhatsappLog = {
+      id: `wa-${Date.now()}`,
+      nombre: datos.compradorNombre,
+      telefono: telf,
+      mensaje: mensajeTemplate,
+      fecha: new Date().toISOString(),
+      estado: envStatus,
+    }
+
+    logs.unshift(nuevoLog)
+    await fs.writeFile(LOGS_PATH, JSON.stringify(logs, null, 2), 'utf-8')
+  } catch (err) {
+    console.error('[WhatsApp Service] Error al escribir log de notificaciones:', err)
+  }
+
+  return success;
 }
 
 export async function obtenerLogsWhatsApp(): Promise<WhatsappLog[]> {
