@@ -1,0 +1,16 @@
+[
+  {
+    "id": "msg-1783104839218-u0bm",
+    "session_id": "test-session-123",
+    "mensaje": "Hola",
+    "rol": "user",
+    "created_at": "2026-07-03T18:53:59.218Z"
+  },
+  {
+    "id": "msg-1783104924182-wtms",
+    "session_id": "test-session-123",
+    "mensaje": "Hola",
+    "rol": "user",
+    "created_at": "2026-07-03T18:55:24.182Z"
+  }
+]

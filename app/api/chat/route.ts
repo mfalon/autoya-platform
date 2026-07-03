@@ -112,7 +112,7 @@ export async function POST(req: Request) {
   }
 
   const result = streamText({
-    model: google('gemini-2.0-flash-exp') as any,
+    model: google('gemini-1.5-flash') as any,
     system: systemPrompt,
     messages,
     temperature: 0.5, // Menor temperatura para mantener el tono profesional y evitar desvíos del rol
@@ -134,5 +134,5 @@ export async function POST(req: Request) {
     }
   } as any)
 
-  return (result as any).toDataStreamResponse()
+  return result.toTextStreamResponse()
 }
