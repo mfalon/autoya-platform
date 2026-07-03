@@ -55,6 +55,14 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
         .then(data => {
           if (data.messages && data.messages.length > 0) {
             setMessages(data.messages)
+          } else {
+            setMessages([
+              {
+                id: 'welcome',
+                role: 'assistant',
+                content: 'Estimado/a, le doy la bienvenida a AutoYa. Soy su Asesor Premium personal. ¿En qué tipo de vehículo se encuentra interesado hoy? Con gusto le asistiré para encontrar la mejor opción técnica y financiera.',
+              }
+            ])
           }
         })
         .catch(err => console.error('[History UI] Error al precargar historial:', err))
@@ -177,11 +185,12 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
 
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript
-      setLocalInput(transcript)
-      handleInputChange({ target: { value: transcript } } as any)
+      append({
+        role: 'user',
+        content: transcript
+      })
       setIsListening(false)
-      // Auto-send after voice
-      setTimeout(() => inputRef.current?.form?.requestSubmit(), 300)
+      setLocalInput('')
     }
 
     recognition.onerror = () => setIsListening(false)
@@ -409,9 +418,10 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
           <button
             key={s}
             onClick={() => {
-              setLocalInput(s)
-              handleInputChange({ target: { value: s } } as any)
-              inputRef.current?.focus()
+              append({
+                role: 'user',
+                content: s
+              })
             }}
             style={{
               flexShrink: 0, padding: '4px 10px',
@@ -441,8 +451,14 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          if (!localInput.trim()) return
-          handleSubmit(e)
+          const text = localInput.trim()
+          if (!text) return
+          
+          append({
+            role: 'user',
+            content: text
+          })
+          
           setLocalInput('')
         }}
         style={{
@@ -462,10 +478,7 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
           <input
             ref={inputRef}
             value={localInput}
-            onChange={(e) => {
-              setLocalInput(e.target.value)
-              handleInputChange(e)
-            }}
+            onChange={(e) => setLocalInput(e.target.value)}
             placeholder={isListening ? '🎙️ Escuchando...' : 'Escribile al Asesor...'}
             disabled={isListening}
             style={{
@@ -480,10 +493,7 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
           {localInput && (
             <button
               type="button"
-              onClick={() => {
-                setLocalInput('')
-                handleInputChange({ target: { value: '' } } as any)
-              }}
+              onClick={() => setLocalInput('')}
               style={{ color: 'var(--fg-tertiary)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}
             >
               <X size={12} />

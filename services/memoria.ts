@@ -23,7 +23,7 @@ const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null
 export async function generarEmbedding(texto: string): Promise<number[] | null> {
   if (!genAI) return null
   try {
-    const model = genAI.getGenerativeModel({ model: 'text-embedding-004' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-embedding-001' })
     const result = await model.embedContent(texto)
     return result.embedding.values
   } catch (err) {
