@@ -14,6 +14,7 @@ const NAV = [
   { href: '/admin/vehiculos',      label: 'Vehículos',      icon: Car },
   { href: '/admin/transferencias', label: 'Transferencias', icon: FileText },
   { href: '/admin/clientes',       label: 'Clientes',       icon: Users },
+  { href: '/admin/configuracion',  label: 'Configuración',  icon: Settings },
 ]
 
 const ROL_LABEL: Record<string, string> = {

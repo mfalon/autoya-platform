@@ -1,6 +1,4 @@
-'use client'
-
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Calendar, Gauge, Shield, Info, CreditCard, ChevronLeft, ChevronRight, Zap, Check, Send } from 'lucide-react'
 import { formatARS } from '@/utils/currency'
@@ -12,7 +10,7 @@ interface VehicleDetailModalProps {
   onReservar: () => void
 }
 
-const PLAZOS = [
+const DEFAULT_PLAZOS = [
   { meses: 12, tna: 0.65 },
   { meses: 24, tna: 0.68 },
   { meses: 36, tna: 0.72 },
@@ -22,6 +20,30 @@ const PLAZOS = [
 export default function VehicleDetailModal({ vehicle, onClose, onReservar }: VehicleDetailModalProps) {
   const [activeTab, setActiveTab] = useState<'ficha' | 'financiacion'>('ficha')
   const [currentImgIdx, setCurrentImgIdx] = useState(0)
+
+  // Datos de tasas y leyendas dinámicas desde la API
+  const [plazos, setPlazos] = useState(DEFAULT_PLAZOS)
+  const [leyenda, setLeyenda] = useState("Simulación bajo sistema de amortización francés. Tasa fija en Pesos. No incluye gastos de otorgamiento ni seguros.")
+
+  // Cargar configuración dinámica
+  useEffect(() => {
+    fetch('/api/config')
+      .then(res => res.json())
+      .then(data => {
+        if (data.tna12) {
+          setPlazos([
+            { meses: 12, tna: Number(data.tna12) },
+            { meses: 24, tna: Number(data.tna24) },
+            { meses: 36, tna: Number(data.tna36) },
+            { meses: 48, tna: Number(data.tna48) },
+          ])
+        }
+        if (data.legend) {
+          setLeyenda(data.legend)
+        }
+      })
+      .catch(err => console.error('[Config] Error al cargar tasas prendarias:', err))
+  }, [])
 
   // Datos del simulador de financiación
   const [anticipo, setAnticipo] = useState(Math.round(vehicle.precio_ars * 0.40)) // 40% por defecto
@@ -41,7 +63,7 @@ export default function VehicleDetailModal({ vehicle, onClose, onReservar }: Veh
   // Lógica del simulador de financiación
   const totalEntregado = anticipo + (hasUsado ? valorUsado : 0)
   const saldoAFinanciar = Math.max(0, vehicle.precio_ars - totalEntregado)
-  const plazoConfig = PLAZOS.find(p => p.meses === plazoMeses) || PLAZOS[1]
+  const plazoConfig = plazos.find(p => p.meses === plazoMeses) || plazos[1]
   
   const cuotaMensual = useMemo(() => {
     if (saldoAFinanciar <= 0) return 0
@@ -251,7 +273,7 @@ export default function VehicleDetailModal({ vehicle, onClose, onReservar }: Veh
                       borderRadius: 3, padding: '8px 10px', fontSize: 11, color: 'var(--ai)',
                     }}>
                       <Info size={12} />
-                      Simulación bajo sistema de amortización francés. Tasa fija en Pesos.
+                      {leyenda}
                     </div>
 
                     {/* Anticipo en Efectivo */}
@@ -338,7 +360,7 @@ export default function VehicleDetailModal({ vehicle, onClose, onReservar }: Veh
                     <div>
                       <span style={{ fontSize: 11, color: 'var(--fg-secondary)', display: 'block', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Plazo de Cuotas</span>
                       <div style={{ display: 'flex', gap: 6 }}>
-                        {PLAZOS.map(p => (
+                        {plazos.map(p => (
                           <button
                             key={p.meses}
                             onClick={() => setPlazoMeses(p.meses)}
