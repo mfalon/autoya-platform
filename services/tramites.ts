@@ -56,20 +56,40 @@ export async function obtenerTramites(): Promise<Tramite[]> {
   }
 }
 
-export async function actualizarEstadoTramite(id: string, nuevoEstado: EstadoTramite): Promise<boolean> {
+export async function actualizarTramite(id: string, campos: {
+  estado?: EstadoTramite
+  comprador_nombre?: string
+  comprador_dni?: string
+  comprador_email?: string
+  notas?: string
+  dni_data?: any
+}): Promise<boolean> {
   if (!supabase) {
     // Modo offline mockeado
     const index = MOCK_TRAMITES.findIndex(t => t.id === id)
     if (index !== -1) {
-      MOCK_TRAMITES[index].estado = nuevoEstado
+      if (campos.estado) MOCK_TRAMITES[index].estado = campos.estado
+      if (campos.comprador_nombre) MOCK_TRAMITES[index].comprador_nombre = campos.comprador_nombre
+      if (campos.comprador_dni) MOCK_TRAMITES[index].comprador_dni = campos.comprador_dni
+      if (campos.comprador_email) MOCK_TRAMITES[index].comprador_email = campos.comprador_email
+      if (campos.notas !== undefined) MOCK_TRAMITES[index].notas = campos.notas
+      if (campos.dni_data) MOCK_TRAMITES[index].dni_procesado = true
     }
     return true
   }
 
   try {
+    const updateData: any = {}
+    if (campos.estado) updateData.estado = campos.estado
+    if (campos.comprador_nombre) updateData.comprador_nombre = campos.comprador_nombre
+    if (campos.comprador_dni) updateData.comprador_dni = campos.comprador_dni
+    if (campos.comprador_email) updateData.comprador_email = campos.comprador_email
+    if (campos.notas !== undefined) updateData.notas = campos.notas
+    if (campos.dni_data) updateData.dni_data = campos.dni_data
+
     const { error } = await supabase
       .from('tramites_legales')
-      .update({ estado: nuevoEstado })
+      .update(updateData)
       .eq('id', id)
 
     if (error) throw error

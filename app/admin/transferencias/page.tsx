@@ -16,6 +16,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { FileText, User, CheckCircle2, Clock, AlertCircle, GripVertical, Eye, Upload } from 'lucide-react'
 import { formatARS } from '@/utils/currency'
 import { MOCK_TRAMITES, type Tramite, type EstadoTramite } from '@/types/admin'
+import GestoriaDetailModal from '@/components/admin/GestoriaDetailModal'
 
 const COLUMNS: { id: EstadoTramite; label: string; color: string; icon: React.ElementType }[] = [
   { id: 'reserva',      label: 'Reserva Pagada',   color: '#f59e0b', icon: Clock },
@@ -24,7 +25,7 @@ const COLUMNS: { id: EstadoTramite; label: string; color: string; icon: React.El
   { id: 'finalizado',   label: 'Finalizado',       color: '#22c55e', icon: CheckCircle2 },
 ]
 
-function TramiteCard({ tramite, isDragging = false }: { tramite: Tramite; isDragging?: boolean }) {
+function TramiteCard({ tramite, isDragging = false, onVer }: { tramite: Tramite; isDragging?: boolean; onVer?: (t: Tramite) => void }) {
   return (
     <div style={{
       background: isDragging ? 'var(--bg-elevated)' : 'var(--bg-card)',
@@ -70,6 +71,10 @@ function TramiteCard({ tramite, isDragging = false }: { tramite: Tramite; isDrag
             </span>
           )}
           <button
+            onClick={(e) => {
+              e.stopPropagation()
+              onVer?.(tramite)
+            }}
             style={{
               display: 'flex', alignItems: 'center', gap: 4,
               padding: '4px 8px', fontSize: 10, fontWeight: 600,
@@ -94,7 +99,7 @@ function TramiteCard({ tramite, isDragging = false }: { tramite: Tramite; isDrag
   )
 }
 
-function SortableCard({ tramite }: { tramite: Tramite }) {
+function SortableCard({ tramite, onVer }: { tramite: Tramite; onVer?: (t: Tramite) => void }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: tramite.id })
   return (
     <div
@@ -103,7 +108,7 @@ function SortableCard({ tramite }: { tramite: Tramite }) {
       {...attributes}
       {...listeners}
     >
-      <TramiteCard tramite={tramite} />
+      <TramiteCard tramite={tramite} onVer={onVer} />
     </div>
   )
 }
@@ -112,6 +117,7 @@ export default function TransferenciasPage() {
   const [tramites, setTramites] = useState<Tramite[]>([])
   const [loading, setLoading] = useState(true)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [selectedTramite, setSelectedTramite] = useState<Tramite | null>(null)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }))
 
   // Cargar trámites desde la base de datos
@@ -258,7 +264,7 @@ export default function TransferenciasPage() {
                             exit={{ opacity: 0, scale: 0.95 }}
                             transition={{ duration: 0.2 }}
                           >
-                            <SortableCard tramite={t} />
+                            <SortableCard tramite={t} onVer={setSelectedTramite} />
                           </motion.div>
                         ))}
                       </AnimatePresence>
@@ -287,6 +293,19 @@ export default function TransferenciasPage() {
           </DndContext>
         )}
       </div>
+
+      {/* Gestoria Dossier Details Modal */}
+      {selectedTramite && (
+        <GestoriaDetailModal
+          tramite={selectedTramite}
+          onClose={() => setSelectedTramite(null)}
+          onUpdate={(updated) => {
+            // Actualizar la tarjeta localmente en el Kanban de inmediato
+            setTramites(prev => prev.map(t => t.id === updated.id ? updated : t))
+            setSelectedTramite(updated)
+          }}
+        />
+      )}
     </div>
   )
 }

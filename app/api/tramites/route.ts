@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { obtenerTramites, actualizarEstadoTramite, crearTramite } from '@/services/tramites'
+import { obtenerTramites, actualizarTramite, crearTramite } from '@/services/tramites'
 import type { EstadoTramite } from '@/types/admin'
 
 export async function GET() {
@@ -14,12 +14,21 @@ export async function GET() {
 
 export async function PUT(req: Request) {
   try {
-    const { id, estado } = await req.json()
-    if (!id || !estado) {
-      return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 })
+    const body = await req.json()
+    const { id, estado, comprador_nombre, comprador_dni, comprador_email, notas, dni_data } = body
+    
+    if (!id) {
+      return NextResponse.json({ error: 'Falta ID' }, { status: 400 })
     }
 
-    const success = await actualizarEstadoTramite(id, estado as EstadoTramite)
+    const success = await actualizarTramite(id, {
+      estado: estado as EstadoTramite,
+      comprador_nombre,
+      comprador_dni,
+      comprador_email,
+      notas,
+      dni_data,
+    })
     return NextResponse.json({ success })
   } catch (error) {
     console.error('[API Tramites PUT] Error:', error)
