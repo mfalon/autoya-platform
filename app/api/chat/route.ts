@@ -1,5 +1,5 @@
 import { google } from '@ai-sdk/google'
-import { streamText, tool } from 'ai'
+import { streamText, tool, toUIMessageStream } from 'ai'
 import { z } from 'zod'
 import { VEHICLES, type Vehicle } from '@/data/vehicles'
 import { obtenerVehiculos } from '@/services/vehiculos'
@@ -134,5 +134,11 @@ export async function POST(req: Request) {
     }
   } as any)
 
-  return result.toTextStreamResponse()
+  return new Response(toUIMessageStream(result), {
+    headers: {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+    },
+  })
 }

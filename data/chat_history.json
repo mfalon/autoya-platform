@@ -26,5 +26,19 @@
     "mensaje": "Listo.",
     "rol": "assistant",
     "created_at": "2026-07-03T19:03:05.349Z"
+  },
+  {
+    "id": "msg-1783105693346-q46i",
+    "session_id": "test-session-123",
+    "mensaje": "Hola",
+    "rol": "user",
+    "created_at": "2026-07-03T19:08:13.346Z"
+  },
+  {
+    "id": "msg-1783105754066-v4ag",
+    "session_id": "test-session-123",
+    "mensaje": "Dame una respuesta de una palabra",
+    "rol": "user",
+    "created_at": "2026-07-03T19:09:14.066Z"
   }
 ]
