@@ -4,27 +4,36 @@ import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   ShieldAlert, Play, Users, Eye, Terminal, CheckCircle2,
-  AlertTriangle, HelpCircle, ArrowRight, ShieldCheck, Info
+  AlertTriangle, HelpCircle, ArrowRight, ShieldCheck, Info, FileCode
 } from 'lucide-react'
+
+const MODULOS_SISTEMA = [
+  { modulo: 'Checkout & Reserva MP', archivo: '/api/webhooks/mp/route.ts', implementacion: 'Recibe webhook de MercadoPago, actualiza estado a reservado y avanza trámite DNRPA.', riesgo: 'Validación de firma de webhook ausente o simulada.' },
+  { modulo: 'Gestoría Digital DNRPA (OCR)', archivo: 'GestoriaDetailModal.tsx', implementacion: 'Gemini Vision OCR para DNI, auto-completa Formulario 08 Digital.', riesgo: 'OCR depende del contraste de imagen; borrador DNRPA es simulado.' },
+  { modulo: 'Simulador Financiero', archivo: 'VehicleDetailModal.tsx', implementacion: 'Fórmula de Amortización Francesa reactiva con TNA/CFT configurable desde admin.', riesgo: 'Posible inconsistencia en redondeos de cuotas centavo a centavo.' },
+  { modulo: 'Recuperación de Carritos (WhatsApp)', archivo: '/admin/clientes/page.tsx', implementacion: 'Dashboard omnichannel para clientes con carrito abandonado y alertas con 1-click WhatsApp.', riesgo: 'Logs de outbox en JSON local como fallback si falla Twilio.' },
+  { modulo: 'Persistencia & DB', archivo: 'supabase.ts', implementacion: 'Lógica híbrida: Supabase Cloud en producción y fallback JSON/localStorage offline.', riesgo: 'Sincronización bidireccional asíncrona limitada.' },
+  { modulo: 'Memoria de Asistente IA', archivo: 'memoria.ts', implementacion: 'Embeddings de Gemini y pgvector en Base de Datos para recordar preferencias del cliente.', riesgo: 'Consumo de tokens de contexto en hilos de conversación largos.' }
+]
 
 export default function AuditoriaFlotaPage() {
   const [loading, setLoading] = useState(false)
   const [step, setStep] = useState(0) // 0: Idle, 1: Investigador, 2: Abogado, 3: Juez
   const [result, setResult] = useState<any>(null)
   
-  const [selectedTruck, setSelectedTruck] = useState('Scania R450 - Patente AF-892-BB')
+  const [selectedModule, setSelectedModule] = useState('Todos los Módulos')
 
   const handleAudit = async () => {
     setLoading(true)
     setResult(null)
     setStep(1)
 
-    // Simular el paso de telemetría al Investigador
+    // Simular el paso visual al Investigador
     setTimeout(() => {
       setStep(2)
     }, 2500)
 
-    // Simular el paso de análisis al Abogado del Diablo
+    // Simular el paso al Abogado del Diablo
     setTimeout(() => {
       setStep(3)
     }, 5000)
@@ -33,7 +42,7 @@ export default function AuditoriaFlotaPage() {
       const response = await fetch('/api/auditoria', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ vehiculo: selectedTruck })
+        body: JSON.stringify({ moduloSeleccionado: selectedModule })
       })
       const data = await response.json()
 
@@ -64,13 +73,13 @@ export default function AuditoriaFlotaPage() {
       <div style={{ marginBottom: 32 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--brand)' }}>
           <ShieldAlert size={18} />
-          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase' }}>Auditoría Inteligente</span>
+          <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase' }}>Auditoría de Código y Arquitectura</span>
         </div>
         <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em', marginTop: 8, color: 'var(--fg-primary)' }}>
-          Enjambre Auditor de Combustible
+          Enjambre Auditor de Intranet
         </h1>
         <p style={{ fontSize: 13, color: 'var(--fg-secondary)', marginTop: 4 }}>
-          Estructura de debate de agentes con incentivos opuestos para auditar telemetría de tanques, mitigando falsos positivos.
+          Estructura de debate de agentes con incentivos opuestos para evaluar la seguridad, lógica y UI de la plataforma de la Concesionaria.
         </p>
       </div>
 
@@ -106,7 +115,7 @@ export default function AuditoriaFlotaPage() {
                 <Users size={14} />
               </div>
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-primary)', display: 'block' }}>2. Abogado del Diablo</span>
-              <span style={{ fontSize: 9, color: 'var(--fg-tertiary)', marginTop: 4, display: 'block' }}>Critic (Propone causas físicas)</span>
+              <span style={{ fontSize: 9, color: 'var(--fg-tertiary)', marginTop: 4, display: 'block' }}>Critic (Propone defensas)</span>
             </div>
 
             <ArrowRight size={16} style={{ color: 'var(--border)' }} className="rotate-90 md:rotate-0" />
@@ -117,7 +126,7 @@ export default function AuditoriaFlotaPage() {
                 <ShieldCheck size={14} />
               </div>
               <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--fg-primary)', display: 'block' }}>3. Auditor General</span>
-              <span style={{ fontSize: 9, color: 'var(--fg-tertiary)', marginTop: 4, display: 'block' }}>The Judge (Veredicto y Puntuación)</span>
+              <span style={{ fontSize: 9, color: 'var(--fg-tertiary)', marginTop: 4, display: 'block' }}>The Judge (Veredicto y Alertas)</span>
             </div>
 
           </div>
@@ -127,10 +136,10 @@ export default function AuditoriaFlotaPage() {
           {/* Consola de Control */}
           <div style={{ display: 'flex', gap: 16, alignItems: 'flex-end' }} className="flex-col md:flex-row">
             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
-              <label style={{ fontSize: 11, color: 'var(--fg-secondary)', fontWeight: 600 }}>Unidad de la Flota a Auditar</label>
+              <label style={{ fontSize: 11, color: 'var(--fg-secondary)', fontWeight: 600 }}>Módulo del Sistema a Auditar</label>
               <select
-                value={selectedTruck}
-                onChange={e => setSelectedTruck(e.target.value)}
+                value={selectedModule}
+                onChange={e => setSelectedModule(e.target.value)}
                 style={{
                   width: '100%', padding: '10px 12px',
                   background: 'var(--bg-card)', border: '1px solid var(--border)',
@@ -138,9 +147,13 @@ export default function AuditoriaFlotaPage() {
                   outline: 'none', cursor: 'pointer'
                 }}
               >
-                <option value="Scania R450 - Patente AF-892-BB">Scania R450 (Remolque Combustible) - Patente AF-892-BB</option>
-                <option value="Volvo FH16 - Patente AE-112-CC">Volvo FH16 (Carga Pesada) - Patente AE-112-CC</option>
-                <option value="Mercedes-Benz Axor - Patente AD-344-DD">Mercedes Axor - Patente AD-344-DD</option>
+                <option value="Todos los Módulos">Todos los Módulos (Auditoría Completa)</option>
+                <option value="Checkout & Reserva MP">Checkout & Reserva MP (/api/webhooks/mp)</option>
+                <option value="Gestoría Digital DNRPA (OCR)">Gestoría Digital DNRPA (OCR DNI)</option>
+                <option value="Simulador Financiero">Simulador Financiero (Amortización Francesa)</option>
+                <option value="Recuperación de Carritos (WhatsApp)">Recuperación de Carritos (WhatsApp Leads)</option>
+                <option value="Persistencia & DB">Persistencia & DB (Supabase Fallback)</option>
+                <option value="Memoria de Asistente IA">Memoria de Asistente IA (pgvector)</option>
               </select>
             </div>
             
@@ -160,53 +173,33 @@ export default function AuditoriaFlotaPage() {
           </div>
         </div>
 
-        {/* Panel Derecho: Telemetría Activa (Datos Crudos) */}
+        {/* Panel Derecho: Tabla de la Arquitectura de Software */}
         <div style={{
           background: 'var(--bg-surface)', border: '1px solid var(--border)',
           borderRadius: 4, padding: '24px 28px', display: 'flex', flexDirection: 'column', gap: 16
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3 style={{ fontSize: 13, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--fg-primary)' }}>
-              Telemetría Cruda (Gasoil)
+              Componentes del Sistema Auditados
             </h3>
-            <span style={{ fontSize: 10, color: 'var(--fg-tertiary)' }}>Último Viaje (11 Registros)</span>
+            <span style={{ fontSize: 10, color: 'var(--fg-tertiary)' }}>AutoYa Intranet</span>
           </div>
 
           <div style={{ maxHeight: 180, overflowY: 'auto', border: '1px solid var(--border)', borderRadius: 3 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
               <thead>
                 <tr style={{ background: 'var(--bg-card)', borderBottom: '1px solid var(--border)' }}>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--fg-secondary)' }}>Hora</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--fg-secondary)' }}>Estado</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--fg-secondary)' }}>Velocidad</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--fg-secondary)' }}>Litros</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--fg-secondary)' }}>Inclinación</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--fg-secondary)' }}>Módulo</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--fg-secondary)' }}>Archivo</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', color: 'var(--fg-secondary)' }}>Riesgo Auditado</th>
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { t: '10:00', est: 'Marcha', v: '80 km/h', l: 450, inc: '0°' },
-                  { t: '10:15', est: 'Marcha', v: '82 km/h', l: 446, inc: '+1°' },
-                  { t: '10:30', est: 'Marcha', v: '78 km/h', l: 442, inc: '-1°' },
-                  { t: '10:45', est: 'Detenido', v: '0 km/h', l: 441, inc: '0°' },
-                  { t: '10:47', est: 'Detenido', v: '0 km/h', l: 421, inc: '0°', highlight: true }, // Anomalía
-                  { t: '10:50', est: 'Detenido', v: '0 km/h', l: 421, inc: '0°' },
-                  { t: '11:05', est: 'Marcha', v: '85 km/h', l: 416, inc: '+5°' },
-                  { t: '11:20', est: 'Marcha', v: '80 km/h', l: 412, inc: '0°' },
-                  { t: '11:35', est: 'Detenido', v: '0 km/h', l: 410, inc: '-4°' },
-                  { t: '11:37', est: 'Detenido', v: '0 km/h', l: 407, inc: '-4°' },
-                  { t: '11:50', est: 'Marcha', v: '75 km/h', l: 402, inc: '0°' },
-                ].map((row, i) => (
-                  <tr key={i} style={{
-                    borderBottom: '1px solid var(--border)',
-                    background: row.highlight ? 'rgba(239,68,68,0.1)' : 'transparent',
-                    color: row.highlight ? '#ef4444' : 'var(--fg-secondary)'
-                  }}>
-                    <td style={{ padding: '8px 12px', fontWeight: row.highlight ? 700 : 'normal' }}>{row.t}</td>
-                    <td style={{ padding: '8px 12px' }}>{row.est}</td>
-                    <td style={{ padding: '8px 12px' }}>{row.v}</td>
-                    <td style={{ padding: '8px 12px', fontWeight: 700 }}>{row.l} L</td>
-                    <td style={{ padding: '8px 12px' }}>{row.inc}</td>
+                {MODULOS_SISTEMA.map((m, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid var(--border)', color: 'var(--fg-secondary)' }}>
+                    <td style={{ padding: '8px 12px', fontWeight: 600 }}>{m.modulo}</td>
+                    <td style={{ padding: '8px 12px', fontFamily: 'monospace', color: 'var(--brand)' }}>{m.archivo}</td>
+                    <td style={{ padding: '8px 12px', color: 'var(--fg-tertiary)' }}>{m.riesgo}</td>
                   </tr>
                 ))}
               </tbody>
@@ -232,14 +225,14 @@ export default function AuditoriaFlotaPage() {
             
             <div style={{ maxWidth: 450 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-primary)', display: 'block' }}>
-                {step === 1 && '📑 [Agente 1] El Investigador Escéptico analizando datos...'}
-                {step === 2 && '😈 [Agente 2] El Abogado del Diablo buscando causas físicas alternativas...'}
-                {step === 3 && '👑 [Agente 3] El Auditor General recopilando debate para dictar veredicto...'}
+                {step === 1 && '📑 [Agente 1] El Investigador Escéptico buscando vulnerabilidades de software...'}
+                {step === 2 && '😈 [Agente 2] El Abogado del Diablo argumentando soluciones de diseño...'}
+                {step === 3 && '👑 [Agente 3] El Auditor General resolviendo prioridades de refactorización...'}
               </span>
               <p style={{ fontSize: 11, color: 'var(--fg-tertiary)', marginTop: 8, lineHeight: 1.5 }}>
-                {step === 1 && 'El Auditor Forense está ejecutando restas y restas paso a paso sobre el combustible para hallar variaciones mayores a 2.5 litros detenido.'}
-                {step === 2 && 'El Abogado del Diablo está cruzando las anomalías detectadas con las pendientes, variaciones térmicas e inconsistencias de sensores.'}
-                {step === 3 && 'El Juez está evaluando el descargo y calculando la puntuación de confianza de fraude definitiva para el reporte de la concesionaria.'}
+                {step === 1 && 'El Auditor Forense está evaluando riesgos lógicos de negocio, control de firmas de webhooks e inconsistencias en simulaciones prendarias.'}
+                {step === 2 && 'El Abogado del Diablo está rebatiendo las acusaciones argumentando fallbacks locales eficientes, reducción de latencia y modularidad.'}
+                {step === 3 && 'El Juez está ponderando el descargo y clasificando hallazgos críticos de seguridad para emitir el dictamen final.'}
               </p>
             </div>
           </motion.div>
@@ -262,21 +255,21 @@ export default function AuditoriaFlotaPage() {
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(239,68,68,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ef4444' }}>
-                    <AlertTriangle size={20} />
+                  <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'rgba(34,197,94,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#22c55e' }}>
+                    <ShieldCheck size={20} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--fg-primary)' }}>Dictamen Final del Enjambre Auditor</h3>
-                    <p style={{ fontSize: 11, color: 'var(--fg-tertiary)', marginTop: 2 }}>{result.vehiculo} · Análisis de sensores completado</p>
+                    <h3 style={{ fontSize: 15, fontWeight: 800, color: 'var(--fg-primary)' }}>Dictamen Final del Enjambre de Software</h3>
+                    <p style={{ fontSize: 11, color: 'var(--fg-tertiary)', marginTop: 2 }}>{result.moduloSeleccionado} · Análisis de calidad de código e intranet completado</p>
                   </div>
                 </div>
                 
-                {/* Alerta Supervisor */}
+                {/* Alerta Refactorización */}
                 <div style={{
-                  background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-                  padding: '6px 12px', borderRadius: 3, display: 'flex', alignItems: 'center', gap: 6, color: '#ef4444', fontSize: 10, fontWeight: 700
+                  background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)',
+                  padding: '6px 12px', borderRadius: 3, display: 'flex', alignItems: 'center', gap: 6, color: '#f59e0b', fontSize: 10, fontWeight: 700
                 }}>
-                  <Info size={12} /> ALERTA DISPARADA A SUPERVISOR (CONF. {`>`} 8)
+                  <FileCode size={12} /> REPORTE DE MEJORAS ENVIADO A DESARROLLO (PUNTAJE GENERAL DICTADO)
                 </div>
               </div>
             </div>
@@ -303,7 +296,7 @@ export default function AuditoriaFlotaPage() {
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: 4, padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#f59e0b' }}>
                   <Users size={14} />
-                  <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Abogado del Diablo</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Abogado del Diablo (Defensa)</span>
                 </div>
                 <div style={{ height: 1, background: 'var(--border)' }} />
                 <div style={{
@@ -345,9 +338,9 @@ export default function AuditoriaFlotaPage() {
         }}>
           <ShieldAlert size={36} style={{ opacity: 0.5, color: 'var(--fg-tertiary)' }} />
           <div style={{ maxWidth: 360 }}>
-            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-secondary)' }}>Esperando Ejecución de Auditoría</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--fg-secondary)' }}>Esperando Auditoría de Código</span>
             <p style={{ fontSize: 11, color: 'var(--fg-tertiary)', marginTop: 6, lineHeight: 1.5 }}>
-              Seleccione un camión de la flota de AutoYa en el panel superior y presione "Iniciar Auditoría" para desplegar el debate de agentes sobre los sensores de gasoil.
+              Seleccione un módulo funcional de la intranet de la concesionaria en el panel superior y presione "Iniciar Auditoría" para desplegar el debate de agentes sobre la calidad del desarrollo.
             </p>
           </div>
         </div>
