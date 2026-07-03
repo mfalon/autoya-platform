@@ -142,17 +142,55 @@ export default function TransferenciasPage() {
     const overId = over.id as string
     const colIds = COLUMNS.map(c => c.id)
     if (colIds.includes(overId as EstadoTramite)) {
+      const targetTramite = tramites.find(t => t.id === active.id)
+      if (!targetTramite) return
+
+      const estadoAnterior = targetTramite.estado
+      const estadoNuevo = overId as EstadoTramite
+
+      if (estadoAnterior === estadoNuevo) return
+
       // 1. Actualización optimista local
       setTramites(prev => prev.map(t =>
-        t.id === active.id ? { ...t, estado: overId as EstadoTramite } : t
+        t.id === active.id ? { ...t, estado: estadoNuevo } : t
       ))
+
       // 2. Persistencia en la base de datos
       try {
-        await fetch('/api/tramites', {
+        const response = await fetch('/api/tramites', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: active.id, estado: overId }),
+          body: JSON.stringify({ id: active.id, estado: estadoNuevo }),
         })
+
+        if (response.ok) {
+          // Registrar en auditoría
+          let userName = 'Gestoría'
+          let userRole = 'role_gestoria'
+          
+          if (typeof window !== 'undefined') {
+            const userStr = localStorage.getItem('autoya_user')
+            if (userStr) {
+              const u = JSON.parse(userStr)
+              userName = u.name
+              userRole = u.role
+            }
+          }
+
+          const labelAnterior = COLUMNS.find(c => c.id === estadoAnterior)?.label || estadoAnterior
+          const labelNuevo = COLUMNS.find(c => c.id === estadoNuevo)?.label || estadoNuevo
+
+          fetch('/api/auditoria/logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              usuario: userName,
+              rol: userRole,
+              accion: 'Cambio de Estado en Kanban',
+              detalles: `Movió el trámite de ${targetTramite.comprador_nombre} (Auto: ${targetTramite.vehiculo_brand} ${targetTramite.vehiculo_model}) desde '${labelAnterior}' hacia '${labelNuevo}'`
+            })
+          }).catch(err => console.error('[Kanban Audit Error]', err))
+        }
       } catch (err) {
         console.error('[Kanban] Error al actualizar estado del trámite:', err)
       }
