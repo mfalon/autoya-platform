@@ -1,9 +1,9 @@
 'use client'
 
-import { useChat } from 'ai/react'
+import { useChat } from '@ai-sdk/react'
 import { useRef, useEffect, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Send, X, Mic, MicOff, Loader2, Sparkles } from 'lucide-react'
+import { Send, X, Mic, MicOff, Loader2, Sparkles, Volume2, VolumeX, Camera } from 'lucide-react'
 import ChatCarCard from '@/components/chat/ChatCarCard'
 import SenaButton from '@/components/chat/SenaButton'
 import type { Vehicle } from '@/data/vehicles'
@@ -30,11 +30,78 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
   const inputRef  = useRef<HTMLInputElement>(null)
   const [isListening, setIsListening]   = useState(false)
   const [noApiKey, setNoApiKey]         = useState(false)
-  const recognitionRef = useRef<SpeechRecognition | null>(null)
+  const [isMuted, setIsMuted]           = useState(true)
+  const [isProcessingImage, setIsProcessingImage] = useState(false)
+  const recognitionRef = useRef<any>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const { messages, input, setInput, handleInputChange, handleSubmit, isLoading, error } = useChat({
+  // Función para subir y procesar imagen con Gemini Vision
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsProcessingImage(true)
+
+    try {
+      // Leer archivo como base64
+      const reader = new FileReader()
+      reader.readAsDataURL(file)
+      reader.onload = async () => {
+        const result = reader.result as string
+        const base64Data = result.split(',')[1]
+
+        // Llamar a nuestra API de visión
+        const res = await fetch('/api/vision', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: base64Data,
+            mimeType: file.type,
+          }),
+        })
+
+        const data = await res.json()
+        setIsProcessingImage(false)
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.error ?? 'Error al procesar la imagen')
+        }
+
+        // Inyectar el mensaje del usuario y la tasación de El Gitano
+        append({
+          role: 'user',
+          content: `Te mando una foto de mi auto para que lo tases. El análisis visual del vehículo arrojó los siguientes detalles: "${data.text}". Dame tu tasación gitana formal en base a eso y apurame a señar uno de los tuyos.`,
+        })
+      }
+    } catch (err) {
+      console.error(err)
+      setIsProcessingImage(false)
+    }
+  }
+
+  // Función para leer en voz alta
+  const speakText = (text: string) => {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return
+    // Cancelar cualquier lectura previa
+    window.speechSynthesis.cancel()
+    
+    // Remover emojis y limpiar un poco para mejor lectura
+    const cleanText = text.replace(/[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '')
+    const utterance = new SpeechSynthesisUtterance(cleanText)
+    
+    utterance.lang = 'es-AR'
+    
+    // Intentar buscar una voz en español
+    const voices = window.speechSynthesis.getVoices()
+    const esVoice = voices.find(v => v.lang.includes('es-AR') || v.lang.includes('es-'))
+    if (esVoice) utterance.voice = esVoice
+
+    window.speechSynthesis.speak(utterance)
+  }
+
+  const { messages, input, setInput, handleInputChange, handleSubmit, isLoading, error, append } = useChat({
     api: '/api/chat',
-    onError: (err) => {
+    onError: (err: any) => {
       if (err.message?.includes('API key') || err.message?.includes('503')) {
         setNoApiKey(true)
       }
@@ -46,12 +113,22 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
         content: '¡Ey, bienvenido fiera! Soy El Gitano, el mejor vendedor de autos del Gran Buenos Aires. ¿Qué estás buscando hoy, maestro? Decime el tipo de fierro que querés y te armo el negocio ahora mismo. 🔥',
       },
     ],
-  })
+  } as any) as any
 
   // Auto-scroll
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, isLoading])
+
+  // Leer último mensaje de IA
+  useEffect(() => {
+    if (messages.length > 1 && !isMuted) {
+      const lastMsg = messages[messages.length - 1]
+      if (lastMsg.role === 'assistant' && lastMsg.content) {
+        speakText(lastMsg.content)
+      }
+    }
+  }, [messages, isMuted])
 
   // Voz — Web Speech API
   const toggleVoice = () => {
@@ -64,12 +141,12 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
     }
 
     const SpeechRecognitionAPI = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition
-    const recognition: SpeechRecognition = new SpeechRecognitionAPI()
+    const recognition: any = new SpeechRecognitionAPI()
     recognition.lang = 'es-AR'
     recognition.continuous = false
     recognition.interimResults = false
 
-    recognition.onresult = (event: SpeechRecognitionEvent) => {
+    recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript
       setInput(transcript)
       setIsListening(false)
@@ -185,6 +262,35 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
             <span style={{ fontSize: 11, color: 'var(--fg-secondary)' }}>Gemini · cerrador nº1 Argentina</span>
           </div>
         </div>
+        <button
+          onClick={() => {
+            const nextMuted = !isMuted
+            setIsMuted(nextMuted)
+            if (!nextMuted && messages.length > 0) {
+              // Leer el último mensaje al desmutear
+              const lastMsg = messages[messages.length - 1]
+              if (lastMsg.role === 'assistant' && lastMsg.content) {
+                speakText(lastMsg.content)
+              }
+            } else if (nextMuted) {
+              window.speechSynthesis?.cancel()
+            }
+          }}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: isMuted ? 'var(--fg-tertiary)' : 'var(--brand)',
+            cursor: 'pointer',
+            padding: 4,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'color 0.15s',
+          }}
+          title={isMuted ? 'Activar voz' : 'Silenciar'}
+        >
+          {isMuted ? <VolumeX size={15} /> : <Volume2 size={15} />}
+        </button>
         <Sparkles size={13} style={{ color: 'var(--brand)', opacity: 0.8 }} />
       </div>
 
@@ -205,7 +311,7 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
       {/* Messages */}
       <div style={{ flex: 1, overflowY: 'auto', padding: '14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
         <AnimatePresence initial={false}>
-          {messages.map(msg => (
+          {messages.map((msg: any) => (
             <motion.div
               key={msg.id}
               initial={{ opacity: 0, y: 10 }}
@@ -226,14 +332,14 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
                       background: 'var(--bg-elevated)',
                       color: 'var(--fg-primary)',
                       border: '1px solid var(--border)',
-                    })
+                     })
                 }}>
                   {msg.content}
                 </div>
               )}
 
               {/* Tool results — Generative UI */}
-              {msg.role === 'assistant' && msg.toolInvocations?.map(invocation => {
+              {msg.role === 'assistant' && msg.toolInvocations?.map((invocation: any) => {
                 if (invocation.state !== 'result') return null
                 const ui = renderToolResult(invocation.toolName, invocation.result)
                 return ui ? <div key={invocation.toolCallId} style={{ width: '100%' }}>{ui}</div> : null
@@ -243,7 +349,7 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
         </AnimatePresence>
 
         {/* Loading */}
-        {isLoading && (
+        {(isLoading || isProcessingImage) && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{
               padding: '10px 14px',
@@ -254,7 +360,7 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
               fontSize: 13, color: 'var(--fg-secondary)',
             }}>
               <Loader2 size={13} style={{ animation: 'spin 1s linear infinite', color: 'var(--brand)' }} />
-              El Gitano está pensando...
+              {isProcessingImage ? 'El Gitano está mirando la foto de tu auto...' : 'El Gitano está pensando...'}
             </div>
           </motion.div>
         )}
@@ -316,7 +422,7 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
         }}>
           <input
             ref={inputRef}
-            value={input}
+            value={input || ''}
             onChange={handleInputChange}
             placeholder={isListening ? '🎙️ Escuchando...' : 'Escribile a El Gitano...'}
             disabled={isListening}
@@ -332,6 +438,36 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
             </button>
           )}
         </div>
+
+        {/* Input file oculto para la cámara */}
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleImageUpload}
+          accept="image/*"
+          style={{ display: 'none' }}
+        />
+
+        {/* Camera button */}
+        <motion.button
+          type="button"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isProcessingImage || isLoading}
+          style={{
+            width: 36, height: 36, borderRadius: 4,
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--fg-secondary)',
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
+          title="Subir foto de mi usado"
+        >
+          <Camera size={14} />
+        </motion.button>
 
         {/* Mic button */}
         {hasSpeechRecognition && (
@@ -360,14 +496,14 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
           type="submit"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          disabled={!input.trim() || isLoading}
+          disabled={!(input || '').trim() || isLoading || isProcessingImage}
           style={{
             width: 36, height: 36, borderRadius: 4,
-            background: input.trim() && !isLoading ? 'var(--brand)' : 'var(--bg-card)',
-            border: `1px solid ${input.trim() && !isLoading ? 'transparent' : 'var(--border)'}`,
+            background: (input || '').trim() && !isLoading && !isProcessingImage ? 'var(--brand)' : 'var(--bg-card)',
+            border: `1px solid ${(input || '').trim() && !isLoading && !isProcessingImage ? 'transparent' : 'var(--border)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: input.trim() && !isLoading ? '#fff' : 'var(--fg-tertiary)',
-            cursor: input.trim() && !isLoading ? 'pointer' : 'default',
+            color: (input || '').trim() && !isLoading && !isProcessingImage ? '#fff' : 'var(--fg-tertiary)',
+            cursor: (input || '').trim() && !isLoading && !isProcessingImage ? 'pointer' : 'default',
             flexShrink: 0,
           }}
         >

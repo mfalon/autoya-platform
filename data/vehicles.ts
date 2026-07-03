@@ -18,6 +18,7 @@ export interface Vehicle {
   body_type: BodyType;
   fuel_type: FuelType;
   precio_ars: number;    // INTEGER — pesos argentinos
+  precio_piso_ars: number; // INTEGER — precio mínimo de venta (piso)
   color: string;
   specs: {
     power_cv: number;
@@ -42,6 +43,7 @@ export const VEHICLES: Vehicle[] = [
     body_type: 'sedan',
     fuel_type: 'Nafta',
     precio_ars: 38_500_000,
+    precio_piso_ars: 34_650_000,
     color: 'Blanco Perlado',
     specs: { power_cv: 170, acceleration: '9,2s', top_speed: '205 km/h', autonomy: '580 km' },
     image: '/cars/sedan.png',
@@ -58,6 +60,7 @@ export const VEHICLES: Vehicle[] = [
     body_type: 'sedan',
     fuel_type: 'Nafta',
     precio_ars: 19_500_000,
+    precio_piso_ars: 17_550_000,
     color: 'Blanco Banchisa',
     specs: { power_cv: 109, acceleration: '10,8s', top_speed: '185 km/h', autonomy: '620 km' },
     image: '/cars/sedan.png',
@@ -74,6 +77,7 @@ export const VEHICLES: Vehicle[] = [
     body_type: 'sedan',
     fuel_type: 'Nafta',
     precio_ars: 27_000_000,
+    precio_piso_ars: 24_300_000,
     color: 'Plata Metalizado',
     specs: { power_cv: 150, acceleration: '9,6s', top_speed: '200 km/h', autonomy: '600 km' },
     image: '/cars/sedan.png',
@@ -92,6 +96,7 @@ export const VEHICLES: Vehicle[] = [
     body_type: 'hatchback',
     fuel_type: 'Nafta',
     precio_ars: 22_000_000,
+    precio_piso_ars: 19_800_000,
     color: 'Blanco Candy',
     specs: { power_cv: 110, acceleration: '11,2s', top_speed: '175 km/h', autonomy: '560 km' },
     image: '/cars/hatchback.png',
@@ -108,6 +113,7 @@ export const VEHICLES: Vehicle[] = [
     body_type: 'hatchback',
     fuel_type: 'Nafta',
     precio_ars: 22_500_000,
+    precio_piso_ars: 20_250_000,
     color: 'Rojo Cajun',
     specs: { power_cv: 100, acceleration: '10,5s', top_speed: '178 km/h', autonomy: '540 km' },
     image: '/cars/hatchback.png',
@@ -124,6 +130,7 @@ export const VEHICLES: Vehicle[] = [
     body_type: 'hatchback',
     fuel_type: 'Nafta',
     precio_ars: 24_000_000,
+    precio_piso_ars: 21_600_000,
     color: 'Azul Vertigo',
     specs: { power_cv: 115, acceleration: '10,2s', top_speed: '185 km/h', autonomy: '520 km' },
     image: '/cars/hatchback.png',
@@ -142,6 +149,7 @@ export const VEHICLES: Vehicle[] = [
     body_type: 'suv',
     fuel_type: 'Nafta',
     precio_ars: 33_000_000,
+    precio_piso_ars: 29_700_000,
     color: 'Gris Satin',
     specs: { power_cv: 133, acceleration: '9,6s', top_speed: '190 km/h', autonomy: '530 km' },
     image: '/cars/suv.png',
@@ -158,6 +166,7 @@ export const VEHICLES: Vehicle[] = [
     body_type: 'suv',
     fuel_type: 'Nafta',
     precio_ars: 28_500_000,
+    precio_piso_ars: 25_650_000,
     color: 'Naranja Dune',
     specs: { power_cv: 115, acceleration: '11,5s', top_speed: '175 km/h', autonomy: '600 km' },
     image: '/cars/suv.png',
@@ -174,6 +183,7 @@ export const VEHICLES: Vehicle[] = [
     body_type: 'suv',
     fuel_type: 'Nafta',
     precio_ars: 37_500_000,
+    precio_piso_ars: 33_750_000,
     color: 'Azul Lapiz',
     specs: { power_cv: 150, acceleration: '9,1s', top_speed: '200 km/h', autonomy: '560 km' },
     image: '/cars/suv.png',
@@ -192,6 +202,7 @@ export const VEHICLES: Vehicle[] = [
     body_type: 'pickup',
     fuel_type: 'Diesel',
     precio_ars: 55_000_000,
+    precio_piso_ars: 49_500_000,
     color: 'Blanco Perlado',
     specs: { power_cv: 204, acceleration: '11,8s', top_speed: '175 km/h', autonomy: '900 km' },
     image: '/cars/pickup.png',
@@ -208,6 +219,7 @@ export const VEHICLES: Vehicle[] = [
     body_type: 'pickup',
     fuel_type: 'Diesel',
     precio_ars: 57_000_000,
+    precio_piso_ars: 51_300_000,
     color: 'Gris Magnetic',
     specs: { power_cv: 200, acceleration: '12,0s', top_speed: '170 km/h', autonomy: '850 km' },
     image: '/cars/pickup.png',

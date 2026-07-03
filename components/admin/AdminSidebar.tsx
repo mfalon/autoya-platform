@@ -87,7 +87,7 @@ export default function AdminSidebar() {
             {MOCK_USER.nombre.charAt(0)}
           </div>
           <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-primary)', truncate: true }}>
+            <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--fg-primary)', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
               {MOCK_USER.nombre}
             </p>
             <span style={{
