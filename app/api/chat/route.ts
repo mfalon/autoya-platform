@@ -76,10 +76,10 @@ const tools = {
 export async function POST(req: Request) {
   const { messages, sessionId } = await req.json()
 
-  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_API_KEY
   if (!apiKey) {
     return new Response(
-      JSON.stringify({ error: 'GOOGLE_GENERATIVE_AI_API_KEY no configurada en .env.local' }),
+      JSON.stringify({ error: 'GEMINI_API_KEY o GOOGLE_GENERATIVE_AI_API_KEY no configurada en .env.local' }),
       { status: 503, headers: { 'Content-Type': 'application/json' } }
     )
   }

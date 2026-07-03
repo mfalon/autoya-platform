@@ -327,12 +327,12 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
         <div style={{
           margin: '10px 14px',
           padding: '10px 12px',
-          background: 'rgba(245,158,11,0.1)',
-          border: '1px solid rgba(245,158,11,0.3)',
+          background: 'rgba(245,158,11,0.06)',
+          border: '1px solid rgba(245,158,11,0.25)',
           borderRadius: 4, fontSize: 11, color: '#f59e0b',
           lineHeight: 1.5,
         }}>
-          ⚠️ Gemini API key no configurada. Agregá <code>GOOGLE_GENERATIVE_AI_API_KEY</code> al <code>.env.local</code> para activar El Gitano real.
+          ⚠️ <strong>Asistente de IA Inactivo:</strong> Clave de API de Gemini no detectada. Por favor, cree un archivo <code>.env.local</code> en la raíz del proyecto y agregue su clave: <code>GEMINI_API_KEY=su_clave_aqui</code>.
         </div>
       )}
 
