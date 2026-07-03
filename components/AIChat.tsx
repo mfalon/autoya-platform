@@ -406,7 +406,7 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
         {SUGGESTIONS.map(s => (
           <button
             key={s}
-            onClick={() => { setInput(s); inputRef.current?.focus() }}
+            onClick={() => { handleInputChange({ target: { value: s } } as any); inputRef.current?.focus() }}
             style={{
               flexShrink: 0, padding: '4px 10px',
               fontSize: 10, fontWeight: 600, letterSpacing: '0.06em',
