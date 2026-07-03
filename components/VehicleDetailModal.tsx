@@ -26,6 +26,8 @@ export default function VehicleDetailModal({ vehicle, onClose, onReservar }: Veh
   // Datos del simulador de financiación
   const [anticipo, setAnticipo] = useState(Math.round(vehicle.precio_ars * 0.40)) // 40% por defecto
   const [plazoMeses, setPlazoMeses] = useState(24)
+  const [hasUsado, setHasUsado] = useState(false)
+  const [valorUsado, setValorUsado] = useState(Math.round(vehicle.precio_ars * 0.30)) // 30% por defecto si activa
 
   // Lista de fotos mockeada según el tipo de auto
   const images = useMemo(() => {
@@ -37,7 +39,8 @@ export default function VehicleDetailModal({ vehicle, onClose, onReservar }: Veh
   }, [vehicle.image])
 
   // Lógica del simulador de financiación
-  const saldoAFinanciar = Math.max(0, vehicle.precio_ars - anticipo)
+  const totalEntregado = anticipo + (hasUsado ? valorUsado : 0)
+  const saldoAFinanciar = Math.max(0, vehicle.precio_ars - totalEntregado)
   const plazoConfig = PLAZOS.find(p => p.meses === plazoMeses) || PLAZOS[1]
   
   const cuotaMensual = useMemo(() => {
@@ -251,15 +254,28 @@ export default function VehicleDetailModal({ vehicle, onClose, onReservar }: Veh
                       Simulación bajo sistema de amortización francés. Tasa fija en Pesos.
                     </div>
 
-                    {/* Anticipo slider */}
+                    {/* Anticipo en Efectivo */}
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <span style={{ fontSize: 11, color: 'var(--fg-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Anticipo de Pago</span>
-                        <strong style={{ fontSize: 13, color: 'var(--fg-primary)' }}>{formatARS(anticipo)}</strong>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <span style={{ fontSize: 11, color: 'var(--fg-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Anticipo en Efectivo</span>
+                        <input
+                          type="text"
+                          value={anticipo ? `$ ${anticipo.toLocaleString('es-AR')}` : ''}
+                          onChange={e => {
+                            const val = Number(e.target.value.replace(/\D/g, ''));
+                            if (val <= vehicle.precio_ars) setAnticipo(val);
+                          }}
+                          style={{
+                            width: 140, padding: '4px 8px', textAlign: 'right',
+                            background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                            borderRadius: 3, fontSize: 13, fontWeight: 700, color: 'var(--fg-primary)',
+                            outline: 'none',
+                          }}
+                        />
                       </div>
                       <input
                         type="range"
-                        min={Math.round(vehicle.precio_ars * 0.20)} // mínimo 20%
+                        min={0}
                         max={Math.round(vehicle.precio_ars * 0.90)} // máximo 90%
                         step={100_000}
                         value={anticipo}
@@ -267,8 +283,55 @@ export default function VehicleDetailModal({ vehicle, onClose, onReservar }: Veh
                         style={{ width: '100%' }}
                       />
                       <p style={{ fontSize: 9, color: 'var(--fg-tertiary)', marginTop: 4 }}>
-                        Rango requerido: 20% a 90% del valor total.
+                        Deslice o tipee el monto en efectivo a entregar.
                       </p>
+                    </div>
+
+                    {/* Entrega de Usado Toggle */}
+                    <div style={{
+                      background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                      borderRadius: 4, padding: '12px 14px',
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, fontWeight: 600, color: 'var(--fg-secondary)', cursor: 'pointer' }}>
+                          <input
+                            type="checkbox"
+                            checked={hasUsado}
+                            onChange={e => setHasUsado(e.target.checked)}
+                            style={{ accentColor: 'var(--brand)' }}
+                          />
+                          ¿Entrega un auto usado como parte de pago?
+                        </label>
+                      </div>
+
+                      {hasUsado && (
+                        <motion.div
+                          initial={{ opacity: 0, height: 0 }}
+                          animate={{ opacity: 1, height: 'auto' }}
+                          style={{ marginTop: 12, overflow: 'hidden' }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                            <span style={{ fontSize: 11, color: 'var(--fg-tertiary)' }}>Valor estimado del usado:</span>
+                            <input
+                              type="text"
+                              value={valorUsado ? `$ ${valorUsado.toLocaleString('es-AR')}` : ''}
+                              onChange={e => {
+                                const val = Number(e.target.value.replace(/\D/g, ''));
+                                if (val <= vehicle.precio_ars) setValorUsado(val);
+                              }}
+                              style={{
+                                width: 140, padding: '4px 8px', textAlign: 'right',
+                                background: 'var(--bg-card)', border: '1px solid var(--border)',
+                                borderRadius: 3, fontSize: 13, fontWeight: 700, color: 'var(--fg-primary)',
+                                outline: 'none',
+                              }}
+                            />
+                          </div>
+                          <p style={{ fontSize: 9, color: 'var(--fg-tertiary)', textAlign: 'right' }}>
+                            Tipee el valor de cotización de su vehículo actual.
+                          </p>
+                        </motion.div>
+                      )}
                     </div>
 
                     {/* Plazo Selection */}
@@ -302,17 +365,24 @@ export default function VehicleDetailModal({ vehicle, onClose, onReservar }: Veh
                       background: 'var(--bg-card)', border: '1px solid var(--border)',
                       borderRadius: 4, padding: '14px', marginTop: 6,
                     }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 11, color: 'var(--fg-secondary)' }}>
+                        <span>Total de entrega (efectivo + usado):</span>
+                        <span style={{ fontWeight: 600, color: 'var(--fg-primary)' }}>{formatARS(totalEntregado)}</span>
+                      </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 11, color: 'var(--fg-secondary)' }}>
                         <span>Saldo a financiar:</span>
                         <span>{formatARS(saldoAFinanciar)}</span>
                       </div>
+                      
+                      <div style={{ height: 1, background: 'var(--border)', margin: '8px 0' }} />
+
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
                           <p style={{ fontSize: 9, color: 'var(--brand)', textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}>
                             Cuota Mensual Estimada
                           </p>
                           <p style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 800, color: 'var(--fg-primary)', letterSpacing: '-0.02em', marginTop: 2 }}>
-                            {cuotaMensual > 0 ? formatARS(cuotaMensual) : 'N/A'}
+                            {cuotaMensual > 0 ? formatARS(cuotaMensual) : '$ 0'}
                           </p>
                         </div>
                         <span style={{
