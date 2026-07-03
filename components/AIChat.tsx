@@ -29,6 +29,7 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLInputElement>(null)
   const [isListening, setIsListening]   = useState(false)
+  const [localInput, setLocalInput]     = useState('')
   const [noApiKey, setNoApiKey]         = useState(false)
   const [isMuted, setIsMuted]           = useState(true)
   const [isProcessingImage, setIsProcessingImage] = useState(false)
@@ -176,6 +177,7 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
 
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript
+      setLocalInput(transcript)
       handleInputChange({ target: { value: transcript } } as any)
       setIsListening(false)
       // Auto-send after voice
@@ -406,7 +408,11 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
         {SUGGESTIONS.map(s => (
           <button
             key={s}
-            onClick={() => { handleInputChange({ target: { value: s } } as any); inputRef.current?.focus() }}
+            onClick={() => {
+              setLocalInput(s)
+              handleInputChange({ target: { value: s } } as any)
+              inputRef.current?.focus()
+            }}
             style={{
               flexShrink: 0, padding: '4px 10px',
               fontSize: 10, fontWeight: 600, letterSpacing: '0.06em',
@@ -433,7 +439,12 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
 
       {/* Input */}
       <form
-        onSubmit={handleSubmit}
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (!localInput.trim()) return
+          handleSubmit(e)
+          setLocalInput('')
+        }}
         style={{
           padding: '12px 14px',
           borderTop: '1px solid var(--border)',
@@ -450,8 +461,11 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
         }}>
           <input
             ref={inputRef}
-            value={input || ''}
-            onChange={handleInputChange}
+            value={localInput}
+            onChange={(e) => {
+              setLocalInput(e.target.value)
+              handleInputChange(e)
+            }}
             placeholder={isListening ? '🎙️ Escuchando...' : 'Escribile al Asesor...'}
             disabled={isListening}
             style={{
@@ -459,11 +473,19 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
               background: 'transparent',
               border: 'none',
               outline: 'none',
+              width: '100%',
               color: isListening ? 'var(--brand)' : 'var(--fg-primary)',
             }}
           />
-          {input && (
-            <button type="button" onClick={() => handleInputChange({ target: { value: '' } } as any)} style={{ color: 'var(--fg-tertiary)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
+          {localInput && (
+            <button
+              type="button"
+              onClick={() => {
+                setLocalInput('')
+                handleInputChange({ target: { value: '' } } as any)
+              }}
+              style={{ color: 'var(--fg-tertiary)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}
+            >
               <X size={12} />
             </button>
           )}
@@ -526,14 +548,14 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
           type="submit"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          disabled={!(input || '').trim() || isLoading || isProcessingImage}
+          disabled={!(localInput || '').trim() || isLoading || isProcessingImage}
           style={{
             width: 36, height: 36, borderRadius: 4,
-            background: (input || '').trim() && !isLoading && !isProcessingImage ? 'var(--brand)' : 'var(--bg-card)',
-            border: `1px solid ${(input || '').trim() && !isLoading && !isProcessingImage ? 'transparent' : 'var(--border)'}`,
+            background: (localInput || '').trim() && !isLoading && !isProcessingImage ? 'var(--brand)' : 'var(--bg-card)',
+            border: `1px solid ${(localInput || '').trim() && !isLoading && !isProcessingImage ? 'transparent' : 'var(--border)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: (input || '').trim() && !isLoading && !isProcessingImage ? '#fff' : 'var(--fg-tertiary)',
-            cursor: (input || '').trim() && !isLoading && !isProcessingImage ? 'pointer' : 'default',
+            color: (localInput || '').trim() && !isLoading && !isProcessingImage ? '#fff' : 'var(--fg-tertiary)',
+            cursor: (localInput || '').trim() && !isLoading && !isProcessingImage ? 'pointer' : 'default',
             flexShrink: 0,
           }}
         >
