@@ -124,7 +124,7 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
     window.speechSynthesis.speak(utterance)
   }
 
-  const { messages, input, setInput, handleInputChange, handleSubmit, isLoading, error, append, setMessages } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error, append, setMessages } = useChat({
     api: '/api/chat',
     body: {
       sessionId,
@@ -452,16 +452,18 @@ export default function AIChat({ onAgentFilter, onReservar }: AIChatProps) {
             ref={inputRef}
             value={input || ''}
             onChange={handleInputChange}
-            placeholder={isListening ? '🎙️ Escuchando...' : 'Escribile a El Gitano...'}
+            placeholder={isListening ? '🎙️ Escuchando...' : 'Escribile al Asesor...'}
             disabled={isListening}
             style={{
               flex: 1, fontSize: 13,
               background: 'transparent',
+              border: 'none',
+              outline: 'none',
               color: isListening ? 'var(--brand)' : 'var(--fg-primary)',
             }}
           />
           {input && (
-            <button type="button" onClick={() => setInput('')} style={{ color: 'var(--fg-tertiary)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
+            <button type="button" onClick={() => handleInputChange({ target: { value: '' } } as any)} style={{ color: 'var(--fg-tertiary)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}>
               <X size={12} />
             </button>
           )}
