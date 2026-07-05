@@ -1,15 +1,30 @@
 import { NextResponse } from 'next/server'
 import fs from 'fs/promises'
 import path from 'path'
+import os from 'os'
 
 const CONFIG_PATH = path.join(process.cwd(), 'data', 'config.json')
 
+function getLocalIpAddress() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name] || []) {
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return 'localhost';
+}
+
 export async function GET() {
   const isOffline = !process.env.SUPABASE_URL
+  const detectedIp = getLocalIpAddress()
   try {
     const data = await fs.readFile(CONFIG_PATH, 'utf-8')
     const config = JSON.parse(data)
     config.isOffline = isOffline
+    config.localIp = detectedIp
     return NextResponse.json(config)
   } catch (error) {
     // Si no existe, retornamos valores por defecto
@@ -22,6 +37,7 @@ export async function GET() {
       legend: "Simulación bajo sistema de amortización francés. Tasa fija en Pesos. No incluye gastos de otorgamiento ni seguros."
     }
     defaults.isOffline = isOffline
+    defaults.localIp = detectedIp
     return NextResponse.json(defaults)
   }
 }

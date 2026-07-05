@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     `
 
     const { text: reporteInvestigador } = await generateText({
-      model: google('gemini-1.5-flash'),
+      model: google('gemini-2.5-flash'),
       prompt: promptInvestigador,
     })
 
@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     `
 
     const { text: contraReporteAbogado } = await generateText({
-      model: google('gemini-1.5-flash'),
+      model: google('gemini-2.5-flash'),
       prompt: promptAbogado,
     })
 
@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     `
 
     const { text: veredictoJuez } = await generateText({
-      model: google('gemini-1.5-flash'),
+      model: google('gemini-2.5-flash'),
       prompt: promptJuez,
     })
 

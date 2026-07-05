@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     // Procesar con Gemini Vision (multimodal)
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
     const prompt = `Analizá esta imagen de un DNI argentino y extraé los datos en formato JSON estricto.
     

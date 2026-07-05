@@ -18,8 +18,8 @@ export async function POST(req: NextRequest) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey)
-    // Usamos gemini-1.5-flash que es rápido y barato para análisis visual
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+    // Usamos gemini-2.5-flash que es rápido y barato para análisis visual
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' })
 
     const prompt = `
 Actúas como el "Asesor Premium", un consultor de ventas y tasador automotriz altamente profesional en AutoYa.

@@ -23,8 +23,11 @@ const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null
 export async function generarEmbedding(texto: string): Promise<number[] | null> {
   if (!genAI) return null
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-embedding-001' })
-    const result = await model.embedContent(texto)
+    const model = genAI.getGenerativeModel({ model: 'gemini-embedding-2' })
+    const result = await model.embedContent({
+      content: { parts: [{ text: texto }] },
+      outputDimensionality: 768
+    } as any)
     return result.embedding.values
   } catch (err) {
     console.error('[Embeddings] Error al generar vector:', err)

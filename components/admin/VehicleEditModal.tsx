@@ -53,14 +53,18 @@ export default function VehicleEditModal({ vehicle, onClose, onSave }: VehicleEd
   const [showQr, setShowQr] = useState(false)
   const [localIp, setLocalIp] = useState('')
 
-  // Inicializar syncId
+  // Inicializar syncId e IP
   useEffect(() => {
     setSyncId(`sync-${Date.now()}-${Math.floor(Math.random() * 1000)}`)
     
-    // Intentar deducir la IP local o de red si estamos en desarrollo
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      setLocalIp('192.168.1.100') // Valor por defecto instructivo
-    }
+    fetch('/api/config')
+      .then(res => res.json())
+      .then(config => {
+        if (config.localIp) {
+          setLocalIp(config.localIp)
+        }
+      })
+      .catch(err => console.error('[VehicleEditModal] Error al obtener config/IP:', err))
   }, [])
 
   // Hook de Polling para verificar si el móvil envió la foto
@@ -548,6 +552,20 @@ export default function VehicleEditModal({ vehicle, onClose, onSave }: VehicleEd
                             finalUrl = `${window.location.origin}/camera?syncId=${syncId}`
                           }
                         }
+
+                        if (typeof window !== 'undefined' && window.location.hostname === 'localhost' && !localIp) {
+                          return (
+                            <div style={{
+                              width: 138, height: 138, background: 'var(--bg-elevated)', border: '1px solid var(--border)',
+                              borderRadius: 4, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 10, color: 'var(--fg-secondary)', gap: 8
+                            }}>
+                              <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite', color: '#f59e0b' }} />
+                              <span>Detectando IP...</span>
+                            </div>
+                          )
+                        }
+
                         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=130x130&data=${encodeURIComponent(finalUrl)}`
                         
                         return (
